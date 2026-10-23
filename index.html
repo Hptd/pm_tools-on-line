@@ -1,0 +1,2878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>在线工具箱</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ctext x='16' y='22' font-size='15' font-family='monospace' fill='%23fff' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --bg:#f5f5f7; --panel:#ffffff; --panel-2:#fbfbfd;
+  --border:rgba(0,0,0,.08); --border2:#d2d2d7;
+  --text:#1d1d1f; --text2:#6e6e73; --text3:#86868b;
+  --accent:#0071e3; --accent-h:#0077ed; --accent-w:rgba(0,113,227,.08); --accent-b:rgba(0,113,227,.22);
+  --ok:#1d9a3e; --ok-w:rgba(52,199,89,.10); --err:#d70015; --err-w:rgba(255,59,48,.07); --warn:#b25000; --warn-w:rgba(255,159,10,.10);
+  --mono:"SF Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace;
+  --radius:12px; --radius-lg:18px;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.04);
+  --topbar-h:52px; --ease:cubic-bezier(.25,.1,.25,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;letter-spacing:-.006em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.02em}
+button{font:inherit;cursor:pointer}
+input,textarea{font:inherit;color:var(--text)}
+::placeholder{color:var(--text3)}
+:focus-visible{outline:3px solid rgba(0,113,227,.35);outline-offset:2px}
+::selection{background:rgba(0,113,227,.18)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:#a1a1a6;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ============ 顶栏 ============ */
+#topbar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:12px;height:var(--topbar-h);padding:0 22px;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
+.logo{display:flex;align-items:center;gap:11px;min-width:0}
+.logo-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(180deg,#0a84ff,#0066d6);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;letter-spacing:-1px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,80,180,.25)}
+.logo-title{font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.logo-title em{font-style:normal;color:var(--accent)}
+.logo-sub{font-size:11.5px;color:var(--text3);white-space:nowrap}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ok);background:var(--ok-w);border:0;border-radius:99px;padding:4px 11px;white-space:nowrap;font-weight:500}
+.badge svg{flex-shrink:0}
+#btnMenu{display:none;width:36px;height:36px;border:0;border-radius:10px;background:#f5f5f7;align-items:center;justify-content:center;color:var(--text)}
+
+/* ============ 布局 ============ */
+#layout{display:flex;align-items:stretch}
+#sidebar{width:248px;flex-shrink:0;background:rgba(251,251,253,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-right:1px solid rgba(0,0,0,.06);padding:18px 12px 48px;height:calc(100vh - var(--topbar-h));position:sticky;top:var(--topbar-h);overflow-y:auto}
+#main{flex:1;min-width:0;padding:32px 36px 96px;max-width:1200px;margin:0 auto;width:100%}
+
+/* ============ 侧边栏 ============ */
+.sgroup{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.06em;padding:18px 12px 7px;display:flex;align-items:center;gap:6px}
+.sgroup svg{flex-shrink:0;opacity:.55}
+.sitem{display:flex;align-items:center;gap:9px;padding:7px 12px;border-radius:9px;color:#424245;font-size:13.5px;text-decoration:none;position:relative;margin-bottom:2px;cursor:pointer;user-select:none;transition:background .2s var(--ease),color .2s var(--ease)}
+.sitem::before{content:"";width:6px;height:6px;border-radius:50%;background:#c7c7cc;flex-shrink:0;transition:background .2s var(--ease)}
+.sitem:hover{background:rgba(0,0,0,.04);color:var(--text)}
+.sitem.on{background:var(--accent-w);color:var(--accent);font-weight:600}
+.sitem.on::before{background:var(--accent)}
+
+/* ============ 工具区通用 ============ */
+.tool{display:none;animation:fadeIn .26s var(--ease)}
+.tool.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tool-head{margin-bottom:22px;max-width:760px}
+.tool-head h2{font-size:26px;line-height:1.25}
+.tool-head p{margin:6px 0 0;color:var(--text2);font-size:13.5px}
+.tool-head code{font-family:var(--mono);font-size:12.5px;background:#f0f0f2;padding:1px 6px;border-radius:6px;color:#424245}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 10px}
+label.lbl{font-size:12.5px;color:var(--text2);display:block;margin:16px 0 8px;font-weight:600;letter-spacing:.01em}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)}
+
+/* ============ 按钮与分段控件 ============ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:980px;border:1px solid transparent;background:#f5f5f7;color:var(--text);font-size:13px;font-weight:500;transition:background .2s var(--ease),color .2s var(--ease),transform .12s var(--ease),box-shadow .2s var(--ease);white-space:nowrap}
+.btn:hover{background:#e8e8ed;color:var(--text)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff;box-shadow:0 1px 2px rgba(0,113,227,.25)}
+.btn.primary:hover{background:var(--accent-h);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--accent);padding-left:10px;padding-right:10px}
+.btn.ghost:hover{background:var(--accent-w);color:var(--accent)}
+.btn.danger{color:var(--err);background:transparent}
+.btn.danger:hover{background:var(--err-w);color:var(--err)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.seg{display:inline-flex;background:#f0f0f2;border:0;border-radius:10px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--text2);padding:5px 12px;border-radius:8px;font-size:12.5px;transition:background .2s var(--ease),color .2s var(--ease),box-shadow .2s var(--ease)}
+.seg button.on{background:#fff;color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04)}
+.seg button:hover:not(.on){color:var(--text)}
+
+/* ============ 表单控件 ============ */
+.ctl{height:36px;padding:0 12px;border:1px solid var(--border2);border-radius:10px;background:var(--panel);font-size:13px;color:var(--text);transition:border-color .2s var(--ease),box-shadow .2s var(--ease);min-width:0}
+select.ctl{appearance:none;-webkit-appearance:none;padding-right:32px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236e6e73' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:10px}
+.ctl:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,113,227,.12)}
+input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;vertical-align:-2px}
+
+/* ============ 代码输入输出 ============ */
+.code{width:100%;min-height:120px;resize:vertical;border:1px solid var(--border2);border-radius:var(--radius);background:var(--panel);padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.65;tab-size:2;display:block;transition:border-color .2s var(--ease),box-shadow .2s var(--ease)}
+.code:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 4px rgba(0,113,227,.12)}
+.code[readonly]{background:var(--panel-2);color:#424245;cursor:auto}
+.code-mini{min-height:90px}
+.pre{margin:0;padding:14px 16px;min-height:220px;max-height:600px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:13px;line-height:1.65;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg)}
+/* JSON 高亮 token */
+.j-k{color:#0066cc} .j-s{color:#1d9a3e} .j-n{color:#c93400} .j-b{color:#6e56cf} .j-null{color:#8e8e93} .j-p{color:#86868b}
+/* 输入输出双栏（主页面） */
+.json-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.json-col{min-width:0}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.optbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.opt-label{font-size:12.5px;color:var(--text2)}
+.auxbar{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap}
+.spacer{flex:1}
+.status{font-size:12px;color:var(--text2);font-family:var(--mono)}
+.status.ok{color:var(--ok)} .status.err{color:var(--err)}
+
+/* ============ 页签 ============ */
+.tabs{display:inline-flex;flex-wrap:wrap;gap:2px;background:#f0f0f2;border:0;border-radius:10px;padding:2px;margin-bottom:12px;max-width:100%}
+.tab{padding:5px 12px;border:0;background:transparent;color:var(--text2);font-size:12.5px;border-radius:8px;margin:0;transition:background .2s var(--ease),color .2s var(--ease),box-shadow .2s var(--ease)}
+.tab.on{background:#fff;color:var(--text);border-bottom-color:transparent;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04)}
+.tab:hover:not(.on){color:var(--text)}
+.out-wrap{position:relative}
+/* 错误提示框 */
+.errbox{border:1px solid rgba(215,0,21,.18);background:var(--err-w);border-radius:var(--radius-lg);padding:14px 16px;margin-top:14px}
+.errbox .t{font-weight:600;color:var(--err);display:flex;align-items:center;gap:6px;font-size:13px}
+.errbox pre{margin:8px 0 0;font-family:var(--mono);font-size:12.5px;color:#8e0010;white-space:pre-wrap;word-break:break-all}
+.errbox .pos{color:var(--err);font-family:var(--mono);font-weight:600}
+
+/* ============ 树形视图 ============ */
+.tree-root{font-family:var(--mono);font-size:13px;line-height:1.7;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;overflow:auto;max-height:600px;white-space:pre-wrap;word-break:break-word}
+.tree-root ul{list-style:none;margin:0;padding-left:18px;border-left:1px solid #e5e5ea}
+.tree-root li{position:relative}
+.tchev{cursor:pointer;color:var(--text3);display:inline-block;width:16px;text-align:center;user-select:none;font-size:10px;transition:color .2s var(--ease)}
+.tchev:hover{color:var(--accent)}
+.tkey{color:#0066cc;cursor:default}
+.tval-s{color:#1d9a3e} .tval-n{color:#c93400} .tval-b{color:#6e56cf} .tval-null{color:var(--text3);font-style:italic}
+.tmeta{color:var(--text3);font-size:12px}
+
+/* ============ 表格视图 ============ */
+.tbl-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:auto;max-height:600px}
+.tbl-wrap table{border-collapse:collapse;font-size:13px;width:100%;min-width:520px}
+.tbl-wrap th,.tbl-wrap td{border-bottom:1px solid #f0f0f2;padding:9px 14px;text-align:left;vertical-align:top;word-break:break-all}
+.tbl-wrap th{background:#fbfbfd;font-weight:600;position:sticky;top:0;white-space:nowrap;font-size:12px;color:var(--text2);letter-spacing:.02em}
+.tbl-wrap td{font-family:var(--mono);font-size:12.5px}
+.tbl-wrap tbody tr:hover td{background:#fafafc}
+
+/* ============ 对比视图 ============ */
+.diff-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:auto;max-height:600px;font-family:var(--mono);font-size:12.5px;line-height:1.55}
+.drow{display:flex;padding:1px 10px}
+.drow:hover{background:#fafafc}
+.dnum{width:46px;color:var(--text3);text-align:right;padding-right:10px;flex-shrink:0;user-select:none;border-right:1px solid #f0f0f2;margin-right:10px}
+.dnum.del{color:#c0392b}
+.dnum.add{color:#1d9a3e}
+.dtext{white-space:pre-wrap;word-break:break-all;padding:0 4px;flex:1}
+.d-ctx{background:transparent}
+.d-del{background:rgba(255,59,48,.05)}.d-del .dtext{background:rgba(255,59,48,.09);color:#a8000b}
+.d-add{background:rgba(52,199,89,.06)}.d-add .dtext{background:rgba(52,199,89,.10);color:#0b6b2b}
+.diff-sum{font-size:12px;color:var(--text2);margin-top:10px}
+
+/* ============ 统计卡片 ============ */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.stat .v{font-size:26px;font-weight:600;font-family:var(--mono);color:var(--text);letter-spacing:-.02em;line-height:1.2}
+.stat .k{font-size:12px;color:var(--text2);margin-top:4px}
+.statbar{margin-top:16px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px}
+.statbar .bar{display:flex;height:12px;border-radius:99px;overflow:hidden;margin:10px 0 6px;background:#f0f0f2}
+.statbar .bar span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text2);margin-top:8px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:0}
+
+/* ============ JSONPath / 正则结果 ============ */
+.path-result{margin-top:12px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);max-height:420px;overflow:auto}
+.path-result .pr{display:flex;gap:12px;padding:9px 14px;border-bottom:1px solid #f5f5f7;font-family:var(--mono);font-size:12.5px}
+.path-result .pr:last-child{border-bottom:0}
+.path-result .pr .p{color:var(--accent);flex-shrink:0}
+.path-result .pr .pv{color:#424245;word-break:break-all}
+mark{margin:0 1px;padding:0 2px;border-radius:4px;background:rgba(255,214,10,.4);color:inherit}
+.regex-out{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:12.5px;max-height:360px;overflow:auto}
+
+/* ============ 图片工具 ============ */
+.img-preview{margin-top:12px;display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+.img-preview img{max-width:180px;max-height:180px;border:1px solid var(--border);border-radius:10px;object-fit:contain;background:#fff}
+.img-preview .meta{font-size:12.5px;color:var(--text2);font-family:var(--mono);line-height:1.8}
+.drop{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;border:1.5px dashed var(--border2);border-radius:var(--radius-lg);background:var(--panel-2);padding:42px 16px;cursor:pointer;transition:border-color .2s var(--ease),background .2s var(--ease),color .2s var(--ease);color:var(--text2);text-align:center}
+.drop:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-w)}
+.drop svg{opacity:.55}
+
+/* ============ 哈希 / 多结果 ============ */
+.kv-list{font-family:var(--mono);font-size:13px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-top:12px}
+.kv-list .kv{display:flex;border-bottom:1px solid #f5f5f7}
+.kv-list .kv:last-child{border-bottom:0}
+.kv-list .kv .kk{width:140px;flex-shrink:0;padding:11px 14px;font-weight:500;color:var(--text2);background:#fbfbfd;border-right:1px solid #f0f0f2;font-size:12.5px}
+.kv-list .kv .kv-v{padding:11px 14px;word-break:break-all;color:#424245}
+
+/* ============ Toast ============ */
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:rgba(29,29,31,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff;padding:10px 20px;border-radius:980px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s var(--ease),transform .25s var(--ease);z-index:100;box-shadow:0 8px 30px rgba(0,0,0,.22);max-width:calc(100vw - 40px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{background:rgba(215,0,21,.92)}
+/* 移动端遮罩 */
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.24);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:55}
+#overlay.show{display:block}
+.hint{font-size:12px;color:var(--text3);margin-top:6px}
+
+/* ============ 响应式 ============ */
+@media (max-width:1100px){
+  .json-layout{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  #btnMenu{display:inline-flex}
+  #sidebar{position:fixed;left:0;top:var(--topbar-h);bottom:0;transform:translateX(-100%);transition:transform .28s var(--ease);z-index:58;width:260px;box-shadow:8px 0 30px rgba(0,0,0,.10);height:auto}
+  #sidebar.open{transform:translateX(0)}
+  #main{padding:22px 16px 80px}
+  #topbar{padding:0 14px}
+  .logo-sub{display:none}
+  .badge span{display:none}
+  .badge{padding:4px}
+  input,textarea,select,.ctl{font-size:16px}
+  .code{font-size:16px}
+  .tool-head h2{font-size:22px}
+  .panel{padding:16px}
+}
+@media (max-width:600px){
+  .json-layout{gap:14px}
+  .tool-head{margin-bottom:16px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+  .stat .v{font-size:22px}
+  .kv-list .kv .kk{width:104px}
+  .tabs,.seg{max-width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="logo">
+    <div class="logo-mark">{ }</div>
+    <div>
+      <div class="logo-title">在线工具箱</div>
+      <div class="logo-sub">数据仅存于浏览器本地</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="badge">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      <span>隐私保护 · 全部在本地处理</span>
+    </span>
+    <button id="btnMenu" aria-label="打开工具菜单" onclick="toggleMenu()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </div>
+</header>
+
+<div id="layout">
+  <aside id="sidebar">
+    <div class="sgroup"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3M12 8l4 4-4 4M8 12h.01"/></svg>JSON 工具</div>
+    <a class="sitem on" data-tool="t-json-format">JSON 格式化</a>
+    <a class="sitem" data-tool="t-json-format" data-act="minify">JSON 压缩</a>
+    <a class="sitem" data-tool="t-json-format" data-act="validate">JSON 校验</a>
+    <a class="sitem" data-tool="t-json-format" data-act="escape">JSON 转义</a>
+    <a class="sitem" data-tool="t-json-format" data-act="unescape">JSON 反转义</a>
+    <a class="sitem" data-tool="t-diff">JSON 对比</a>
+    <a class="sitem" data-tool="t-xml" data-mode="j2x">JSON 转 XML</a>
+    <a class="sitem" data-tool="t-xml" data-mode="x2j">XML 转 JSON</a>
+    <a class="sitem" data-tool="t-yaml" data-mode="j2y">JSON 转 YAML</a>
+    <a class="sitem" data-tool="t-yaml" data-mode="y2j">YAML 转 JSON</a>
+    <a class="sitem" data-tool="t-csv" data-mode="j2c">JSON 转 CSV</a>
+    <a class="sitem" data-tool="t-csv" data-mode="c2j">CSV 转 JSON</a>
+    <a class="sitem" data-tool="t-table">JSON 转 Table</a>
+    <a class="sitem" data-tool="t-lang">JSON 转编程语言</a>
+    <a class="sitem" data-tool="t-path">JSON 路径查询</a>
+    <a class="sitem" data-tool="t-sql">JSON 转 SQL</a>
+    <a class="sitem" data-tool="t-tree">JSON 树形查看</a>
+    <a class="sitem" data-tool="t-stats">JSON 统计</a>
+    <a class="sitem" data-tool="t-sort">JSON 排序</a>
+    <div class="sgroup"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6V4h16v2M8 12h8M12 20h0"/><path d="M4 20l3-9 3 9 2-5"/></svg>编码转换</div>
+    <a class="sitem" data-tool="t-url">URL 编码 / 解码</a>
+    <a class="sitem" data-tool="t-b64">Base64 编码 / 解码</a>
+    <a class="sitem" data-tool="t-unicode">Unicode 转义 / 反转义</a>
+    <a class="sitem" data-tool="t-htmlent">HTML 实体编码 / 解码</a>
+    <div class="sgroup"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="19" cy="17" r="2.5"/></svg>文本工具</div>
+    <a class="sitem" data-tool="t-count">字数统计</a>
+    <a class="sitem" data-tool="t-case">大小写转换</a>
+    <a class="sitem" data-tool="t-reverse">字符串反转</a>
+    <a class="sitem" data-tool="t-trim">去除空白</a>
+    <a class="sitem" data-tool="t-len">字符串长度</a>
+    <div class="sgroup"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>加密工具</div>
+    <a class="sitem" data-tool="t-hash" data-hash="md5">MD5</a>
+    <a class="sitem" data-tool="t-hash" data-hash="sha1">SHA-1</a>
+    <a class="sitem" data-tool="t-hash" data-hash="sha256">SHA-256</a>
+    <a class="sitem" data-tool="t-hash" data-hash="sha512">SHA-512</a>
+    <div class="sgroup"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>时间工具</div>
+    <a class="sitem" data-tool="t-ts">时间戳转换</a>
+    <div class="sgroup"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-10 4 6 2-3 4 7H4z"/><circle cx="17" cy="6" r="1.6"/></svg>数字工具</div>
+    <a class="sitem" data-tool="t-radix">进制转换</a>
+    <a class="sitem" data-tool="t-rand">随机数生成</a>
+    <a class="sitem" data-tool="t-uuid">UUID 生成</a>
+    <a class="sitem" data-tool="t-pass">随机密码</a>
+    <div class="sgroup"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h7"/><circle cx="19" cy="18" r="2.5"/><path d="M21 16.5l2-2"/></svg>正则工具</div>
+    <a class="sitem" data-tool="t-regex">正则表达式测试</a>
+    <div class="sgroup"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>图片工具</div>
+    <a class="sitem" data-tool="t-img64">图片转 Base64</a>
+  </aside>
+
+  <main id="main">
+
+    <!-- ============ 主页面：JSON 格式化 / 压缩 / 校验 / 转义 ============ -->
+    <section class="tool active" id="t-json-format">
+      <div class="tool-head">
+        <h2>JSON 在线解析 / 格式化</h2>
+        <p>粘贴或输入 JSON 即自动格式化；也可手动使用按钮。支持缩进调节、键排序、错误定位（行列）、树形与表格视图。</p>
+      </div>
+      <div class="json-layout">
+        <div class="json-col">
+          <div class="toolbar" id="fmtToolbar">
+            <button class="btn primary" data-act="format">格式化</button>
+            <button class="btn" data-act="minify">压缩</button>
+            <button class="btn" data-act="validate">校验</button>
+            <button class="btn" data-act="escape">转义</button>
+            <button class="btn" data-act="unescape">反转义</button>
+          </div>
+          <div class="optbar">
+            <span class="opt-label">缩进</span>
+            <div class="seg" id="indentSeg">
+              <button data-indent="2">2 空格</button><button data-indent="4" class="on">4 空格</button><button data-indent="tab">Tab</button><button data-indent="8">8 空格</button>
+            </div>
+            <span class="opt-label">键排序</span>
+            <div class="seg" id="sortSeg">
+              <button data-sort="none" class="on">不排序</button><button data-sort="asc">升序</button><button data-sort="desc">降序</button>
+            </div>
+          </div>
+          <textarea id="jsonIn" class="code" spellcheck="false" placeholder='{"name":"json.cn","tags":["json","工具"],"meta":{"online":true,"users":1280000}}'></textarea>
+          <div class="auxbar">
+            <button class="btn ghost" id="btnExample">载入示例</button>
+            <button class="btn ghost" id="btnClear">清空</button>
+            <button class="btn ghost" id="btnUpload">上传文件</button>
+            <input type="file" id="jsonFile" hidden accept=".json,.txt,application/json">
+            <span class="spacer"></span>
+            <span id="jsonStatus" class="status"></span>
+          </div>
+        </div>
+        <div class="json-col">
+          <div class="tabs" id="outTabs">
+            <button class="tab on" data-view="text">格式化结果</button>
+            <button class="tab" data-view="tree">树形</button>
+            <button class="tab" data-view="table">表格</button>
+            <button class="tab" data-view="jsonpath">JSONPath</button>
+          </div>
+          <div class="out-wrap">
+            <pre id="jsonOut" class="pre"></pre>
+            <div id="treeOut" hidden></div>
+            <div id="tableOut" hidden></div>
+            <div id="pathOut" hidden>
+              <div class="row">
+                <input id="pathExpr" class="ctl" style="flex:1" placeholder='JSONPath 表达式，如 $.data.users[0].name'>
+                <button class="btn primary" id="btnPathRun">查询</button>
+              </div>
+              <div id="pathResult" class="path-result"></div>
+              <div class="status" id="pathCount"></div>
+            </div>
+          </div>
+          <div class="auxbar">
+            <button class="btn ghost" id="btnCopyOut">复制结果</button>
+            <button class="btn ghost" id="btnDownload">下载 .json</button>
+            <span class="spacer"></span>
+            <span id="jsonMeta" class="status"></span>
+          </div>
+        </div>
+      </div>
+      <div id="errBox" class="errbox" hidden>
+        <div class="t">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          JSON 解析错误 <span class="pos" id="errPos"></span>
+          <button class="btn ghost" style="margin-left:auto;padding:2px 8px" id="btnErrCopy">复制错误</button>
+        </div>
+        <pre id="errMsg"></pre>
+      </div>
+    </section>
+
+    <!-- ============ JSON 对比 ============ -->
+    <section class="tool" id="t-diff">
+      <div class="tool-head"><h2>JSON 对比</h2><p>比较两段 JSON 的差异（先格式化后逐行对比，绿色为新增、红色为删除）。</p></div>
+      <div class="panel">
+        <div class="json-layout">
+          <div class="json-col"><label class="lbl">原始 JSON（左侧）</label><textarea id="diffA" class="code" spellcheck="false" placeholder='{"name":"json.cn","users":1280000}'></textarea></div>
+          <div class="json-col"><label class="lbl">对比 JSON（右侧）</label><textarea id="diffB" class="code" spellcheck="false" placeholder='{"name":"json.cn","users":1500000,"free":true}'></textarea></div>
+        </div>
+        <div class="row"><button class="btn primary" id="btnDiffRun">开始对比</button><span id="diffSum" class="status"></span></div>
+        <div id="diffOut" class="diff-wrap" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON ↔ XML ============ -->
+    <section class="tool" id="t-xml">
+      <div class="tool-head"><h2>JSON 转 XML / XML 转 JSON</h2><p>双向转换。JSON 转 XML 时，对象键可作为 XML 元素，键名以 @ 开头视为属性，#text 视为文本内容。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="xmlMode"><button data-v="j2x" class="on">JSON → XML</button><button data-v="x2j">XML → JSON</button></div>
+          <label class="opt-label">根节点名</label><input id="xmlRoot" class="ctl" style="width:120px" value="root">
+          <button class="btn primary" id="btnXmlRun">转换</button>
+        </div>
+        <textarea id="xmlIn" class="code" spellcheck="false" placeholder='{"root":{"name":"json.cn","items":[1,2,3]}}'></textarea>
+        <label class="lbl">输出</label>
+        <textarea id="xmlOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="xmlOut">复制结果</button><span class="status" id="xmlStatus"></span></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON ↔ YAML ============ -->
+    <section class="tool" id="t-yaml">
+      <div class="tool-head"><h2>JSON 转 YAML / YAML 转 JSON</h2><p>双向转换。YAML 解析支持嵌套映射/列表、引号字符串、注释与常见标量类型。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="yamlMode"><button data-v="j2y" class="on">JSON → YAML</button><button data-v="y2j">YAML → JSON</button></div>
+          <button class="btn primary" id="btnYamlRun">转换</button>
+        </div>
+        <textarea id="yamlIn" class="code" spellcheck="false" placeholder='{"name":"json.cn","meta":{"online":true}}'></textarea>
+        <label class="lbl">输出</label>
+        <textarea id="yamlOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="yamlOut">复制结果</button><span class="status" id="yamlStatus"></span></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON ↔ CSV ============ -->
+    <section class="tool" id="t-csv">
+      <div class="tool-head"><h2>JSON 转 CSV / CSV 转 JSON</h2><p>双向转换。JSON 转 CSV 会将嵌套对象按点号路径展开成列；CSV 转 JSON 以首行为表头。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="csvMode"><button data-v="j2c" class="on">JSON → CSV</button><button data-v="c2j">CSV → JSON</button></div>
+          <span class="opt-label">分隔符</span>
+          <div class="seg" id="csvDelim"><button data-v="," class="on">逗号</button><button data-v=";">分号</button><button data-v="	">Tab</button></div>
+          <button class="btn primary" id="btnCsvRun">转换</button>
+        </div>
+        <textarea id="csvIn" class="code" spellcheck="false" placeholder='[{"name":"json.cn","users":1280000},{"name":"doubao","users":500000}]'></textarea>
+        <label class="lbl">输出</label>
+        <textarea id="csvOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="csvOut">复制结果</button><span class="status" id="csvStatus"></span></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON 转 Table ============ -->
+    <section class="tool" id="t-table">
+      <div class="tool-head"><h2>JSON 转 Table（表格视图）</h2><p>将对象数组或嵌套对象转换为表格预览，列标题为展平后的字段路径。</p></div>
+      <div class="panel">
+        <textarea id="tblIn" class="code" spellcheck="false" placeholder='[{"name":"json.cn","meta":{"online":true,"users":1280000}},{"name":"doubao","meta":{"online":true,"users":500000}}]'></textarea>
+        <div class="row"><button class="btn primary" id="btnTblRun">生成表格</button><span class="status" id="tblStatus"></span></div>
+        <div id="tblOut" class="tbl-wrap" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON 转编程语言 ============ -->
+    <section class="tool" id="t-lang">
+      <div class="tool-head"><h2>JSON 转编程语言</h2><p>将 JSON 转换为指定语言的变量/类/结构体定义，便于接口联调快速生成代码骨架。</p></div>
+      <div class="panel">
+        <div class="row">
+          <label class="opt-label">目标语言</label>
+          <select id="langSel" class="ctl">
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="go">Go</option>
+            <option value="java">Java</option>
+            <option value="csharp">C#</option>
+            <option value="cpp">C++</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+          </select>
+          <button class="btn primary" id="btnLangRun">生成代码</button>
+        </div>
+        <textarea id="langIn" class="code" spellcheck="false" placeholder='{"name":"json.cn","meta":{"online":true,"users":1280000}}'></textarea>
+        <label class="lbl">输出</label>
+        <textarea id="langOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="langOut">复制结果</button><span class="status" id="langStatus"></span></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON 路径查询 ============ -->
+    <section class="tool" id="t-path">
+      <div class="tool-head"><h2>JSON 路径查询（JSONPath）</h2><p>用 JSONPath 表达式提取数据，如 <code>$.data.users[0].name</code>、<code>$..price</code>、<code>$.items[*].id</code>，支持简单过滤 <code>[?(@.age&gt;18)]</code>。</p></div>
+      <div class="panel">
+        <textarea id="pathIn" class="code" spellcheck="false" placeholder='{"data":{"users":[{"name":"Alice","age":28},{"name":"Bob","age":16}]}}'></textarea>
+        <div class="row">
+          <input id="pathExpr2" class="ctl" style="flex:1" placeholder='$.data.users[?(@.age>=18)].name'>
+          <button class="btn primary" id="btnPathRun2">查询</button>
+        </div>
+        <div id="pathResult2" class="path-result"></div>
+        <div class="status" id="pathCount2"></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON 转 SQL ============ -->
+    <section class="tool" id="t-sql">
+      <div class="tool-head"><h2>JSON 转 SQL</h2><p>将对象数组/对象生成 MySQL 风格建表语句与 INSERT 语句；嵌套结构写入 TEXT 列。</p></div>
+      <div class="panel">
+        <div class="row">
+          <label class="opt-label">表名</label><input id="sqlTable" class="ctl" style="width:150px" value="t_import">
+          <button class="btn primary" id="btnSqlRun">生成 SQL</button>
+        </div>
+        <textarea id="sqlIn" class="code" spellcheck="false" placeholder='[{"id":1,"name":"json.cn","online":true,"score":98.5,"tags":["json","tool"]}]'></textarea>
+        <label class="lbl">输出</label>
+        <textarea id="sqlOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="sqlOut">复制结果</button><span class="status" id="sqlStatus"></span></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON 树形查看 ============ -->
+    <section class="tool" id="t-tree">
+      <div class="tool-head"><h2>JSON 树形查看</h2><p>以可折叠树形展示 JSON 结构，点击箭头展开/收起节点。</p></div>
+      <div class="panel">
+        <textarea id="treeIn" class="code" spellcheck="false" placeholder='{"name":"json.cn","meta":{"online":true,"users":1280000},"items":[1,2,{"k":"v"}]}'></textarea>
+        <div class="row">
+          <button class="btn primary" id="btnTreeRun">生成树形</button>
+          <button class="btn ghost" id="btnTreeExpand">全部展开</button>
+          <button class="btn ghost" id="btnTreeCollapse">全部收起</button>
+          <span class="status" id="treeStatus"></span>
+        </div>
+        <div id="treeOut2" class="tree-root" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============ JSON 统计 ============ -->
+    <section class="tool" id="t-stats">
+      <div class="tool-head"><h2>JSON 统计</h2><p>分析 JSON 的节点数、深度、字符数与类型分布。</p></div>
+      <div class="panel">
+        <textarea id="statsIn" class="code" spellcheck="false" placeholder='{"name":"json.cn","meta":{"online":true},"tags":["json","工具"],"num":3.14}'></textarea>
+        <div class="row"><button class="btn primary" id="btnStatsRun">统计</button></div>
+        <div class="stats" id="statsOut"></div>
+        <div class="statbar" id="statsBar" hidden>
+          <div class="tmeta" style="font-size:13px;font-weight:600;color:var(--text2)">值类型分布</div>
+          <div class="bar" id="statsBarInner"></div>
+          <div class="legend" id="statsLegend"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ JSON 排序 ============ -->
+    <section class="tool" id="t-sort">
+      <div class="tool-head"><h2>JSON 排序</h2><p>递归按键名字母顺序排序（升序/降序）后输出。</p></div>
+      <div class="panel">
+        <textarea id="sortIn" class="code" spellcheck="false" placeholder='{"z":1,"a":{"y":2,"b":3}}'></textarea>
+        <div class="row">
+          <div class="seg" id="sortMode"><button data-v="asc" class="on">升序</button><button data-v="desc">降序</button></div>
+          <button class="btn primary" id="btnSortRun">排序</button>
+        </div>
+        <label class="lbl">输出</label>
+        <textarea id="sortOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="sortOut">复制结果</button><span class="status" id="sortStatus"></span></div>
+      </div>
+    </section>
+
+    <!-- ============ URL 编码 / 解码 ============ -->
+    <section class="tool" id="t-url">
+      <div class="tool-head"><h2>URL 编码 / 解码</h2><p>对字符串做百分号（Percent-Encoding）编码或解码。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="urlMode"><button data-v="encode" class="on">编码</button><button data-v="decode">解码</button></div>
+          <button class="btn primary" data-run="url">执行</button>
+        </div>
+        <label class="lbl">输入</label><textarea id="urlIn" class="code code-mini" spellcheck="false" placeholder="https://www.json.cn/?q=JSON 在线解析"></textarea>
+        <label class="lbl">输出</label><textarea id="urlOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="urlOut">复制结果</button><button class="btn ghost" data-clear="urlOut">清空输出</button></div>
+      </div>
+    </section>
+
+    <!-- ============ Base64 ============ -->
+    <section class="tool" id="t-b64">
+      <div class="tool-head"><h2>Base64 编码 / 解码</h2><p>Base64 编解码，支持中文（UTF-8）。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="b64Mode"><button data-v="encode" class="on">编码</button><button data-v="decode">解码</button></div>
+          <button class="btn primary" data-run="b64">执行</button>
+        </div>
+        <label class="lbl">输入</label><textarea id="b64In" class="code code-mini" spellcheck="false" placeholder="你好，JSON.cn"></textarea>
+        <label class="lbl">输出</label><textarea id="b64Out" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="b64Out">复制结果</button><button class="btn ghost" data-clear="b64Out">清空输出</button></div>
+      </div>
+    </section>
+
+    <!-- ============ Unicode 转义 ============ -->
+    <section class="tool" id="t-unicode">
+      <div class="tool-head"><h2>Unicode 转义 / 反转义</h2><p>将文本转为 <code>\uXXXX</code> 转义序列（含代理对合并），或反向还原。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="uniMode"><button data-v="encode" class="on">转义</button><button data-v="decode">反转义</button></div>
+          <button class="btn primary" data-run="unicode">执行</button>
+        </div>
+        <label class="lbl">输入</label><textarea id="uniIn" class="code code-mini" spellcheck="false" placeholder="你好，世界 🚀"></textarea>
+        <label class="lbl">输出</label><textarea id="uniOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="uniOut">复制结果</button><button class="btn ghost" data-clear="uniOut">清空输出</button></div>
+      </div>
+    </section>
+
+    <!-- ============ HTML 实体 ============ -->
+    <section class="tool" id="t-htmlent">
+      <div class="tool-head"><h2>HTML 实体编码 / 解码</h2><p>转义/还原 <code>&amp; &lt; &gt; &quot; &#39;</code> 等 HTML 特殊字符。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="entMode"><button data-v="encode" class="on">编码</button><button data-v="decode">解码</button></div>
+          <button class="btn primary" data-run="htmlent">执行</button>
+        </div>
+        <label class="lbl">输入</label><textarea id="entIn" class="code code-mini" spellcheck="false" placeholder='<div class="box">a & b</div>'></textarea>
+        <label class="lbl">输出</label><textarea id="entOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="entOut">复制结果</button><button class="btn ghost" data-clear="entOut">清空输出</button></div>
+      </div>
+    </section>
+
+    <!-- ============ 字数统计 ============ -->
+    <section class="tool" id="t-count">
+      <div class="tool-head"><h2>字数统计</h2><p>输入即统计：字符数、汉字数、单词数、行数与 UTF-8 字节数。</p></div>
+      <div class="panel">
+        <textarea id="countIn" class="code" spellcheck="false" placeholder="在此输入或粘贴文本…"></textarea>
+        <div class="stats" style="margin-top:12px" id="countOut"></div>
+      </div>
+    </section>
+
+    <!-- ============ 大小写转换 ============ -->
+    <section class="tool" id="t-case">
+      <div class="tool-head"><h2>大小写转换</h2><p>英文大小写及首字母大写转换。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="caseMode"><button data-v="upper" class="on">全部大写</button><button data-v="lower">全部小写</button><button data-v="cap">单词首字母大写</button></div>
+          <button class="btn primary" data-run="case">执行</button>
+        </div>
+        <label class="lbl">输入</label><textarea id="caseIn" class="code code-mini" spellcheck="false" placeholder="hello json.cn world"></textarea>
+        <label class="lbl">输出</label><textarea id="caseOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="caseOut">复制结果</button></div>
+      </div>
+    </section>
+
+    <!-- ============ 字符串反转 ============ -->
+    <section class="tool" id="t-reverse">
+      <div class="tool-head"><h2>字符串反转</h2><p>反转字符顺序，或按单词为单位反转顺序。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="revMode"><button data-v="char" class="on">按字符反转</button><button data-v="word">按单词反转</button></div>
+          <button class="btn primary" data-run="reverse">执行</button>
+        </div>
+        <label class="lbl">输入</label><textarea id="revIn" class="code code-mini" spellcheck="false" placeholder="JSON 在线解析工具"></textarea>
+        <label class="lbl">输出</label><textarea id="revOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="revOut">复制结果</button></div>
+      </div>
+    </section>
+
+    <!-- ============ 去除空白 ============ -->
+    <section class="tool" id="t-trim">
+      <div class="tool-head"><h2>去除空白</h2><p>去除首尾空白、全部空白、合并连续空格或删除空行。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="trimMode"><button data-v="all" class="on">全部空白</button><button data-v="edge">首尾空白</button><button data-v="merge">合并空格</button><button data-v="blankline">删除空行</button></div>
+          <button class="btn primary" data-run="trim">执行</button>
+        </div>
+        <label class="lbl">输入</label><textarea id="trimIn" class="code code-mini" spellcheck="false" placeholder="  你好    json   \n\n  世界  "></textarea>
+        <label class="lbl">输出</label><textarea id="trimOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="trimOut">复制结果</button></div>
+      </div>
+    </section>
+
+    <!-- ============ 字符串长度 ============ -->
+    <section class="tool" id="t-len">
+      <div class="tool-head"><h2>字符串长度</h2><p>实时显示字符数（含/不含空格）、UTF-8 字节数与行数。</p></div>
+      <div class="panel">
+        <textarea id="lenIn" class="code" spellcheck="false" placeholder="在此输入文本…"></textarea>
+        <div class="stats" style="margin-top:12px" id="lenOut"></div>
+      </div>
+    </section>
+
+    <!-- ============ 哈希计算 ============ -->
+    <section class="tool" id="t-hash">
+      <div class="tool-head"><h2>MD5 / SHA 哈希计算</h2><p>纯前端计算 MD5、SHA-1、SHA-256、SHA-512，结果以小写十六进制输出。</p></div>
+      <div class="panel">
+        <div class="row">
+          <div class="seg" id="hashSel">
+            <button data-v="md5">MD5</button><button data-v="sha1">SHA-1</button><button data-v="sha256" class="on">SHA-256</button><button data-v="sha512">SHA-512</button>
+          </div>
+          <button class="btn primary" data-run="hash">计算全部</button>
+        </div>
+        <textarea id="hashIn" class="code" spellcheck="false" placeholder="输入要计算哈希的文本…"></textarea>
+        <div class="kv-list" id="hashOut" hidden></div>
+        <div class="auxbar"><button class="btn ghost" id="btnHashCopy">复制全部结果</button><span class="status" id="hashStatus"></span></div>
+      </div>
+    </section>
+
+    <!-- ============ 时间戳转换 ============ -->
+    <section class="tool" id="t-ts">
+      <div class="tool-head"><h2>时间戳转换</h2><p>Unix 时间戳与日期时间互转，支持秒/毫秒自动识别。</p></div>
+      <div class="panel">
+        <div class="json-layout">
+          <div class="json-col">
+            <label class="lbl">时间戳 → 日期</label>
+            <div class="row"><input id="tsIn" class="ctl" style="flex:1" placeholder="如 1730000000 或 1730000000000"><button class="btn primary" id="btnTsRun">转换</button></div>
+            <div class="kv-list" id="tsOut" hidden></div>
+            <div class="status" id="tsStatus"></div>
+          </div>
+          <div class="json-col">
+            <label class="lbl">日期 → 时间戳</label>
+            <div class="row"><input id="dtIn" type="datetime-local" class="ctl" style="flex:1"><button class="btn primary" id="btnDtRun">转换</button></div>
+            <div class="kv-list" id="dtOut" hidden></div>
+            <div class="status" id="dtStatus"></div>
+          </div>
+        </div>
+        <div class="auxbar"><button class="btn ghost" id="btnTsNow">现在</button><span class="hint" style="margin:0">快速填入当前秒级时间戳</span></div>
+      </div>
+    </section>
+
+    <!-- ============ 进制转换 ============ -->
+    <section class="tool" id="t-radix">
+      <div class="tool-head"><h2>进制转换</h2><p>任意进制（2–36）互转，支持整数。</p></div>
+      <div class="panel">
+        <div class="row">
+          <label class="opt-label">数值</label><input id="radixIn" class="ctl" style="width:180px" placeholder="255">
+          <label class="opt-label">输入进制</label>
+          <select id="radixFrom" class="ctl">
+            <option value="2">2</option><option value="8">8</option><option value="10" selected>10</option><option value="16">16</option><option value="36">36</option>
+          </select>
+          <button class="btn primary" data-run="radix">转换</button>
+        </div>
+        <div class="kv-list" id="radixOut" hidden></div>
+        <div class="status" id="radixStatus"></div>
+      </div>
+    </section>
+
+    <!-- ============ 随机数生成 ============ -->
+    <section class="tool" id="t-rand">
+      <div class="tool-head"><h2>随机数生成</h2><p>在指定范围内生成一个或多个随机数。</p></div>
+      <div class="panel">
+        <div class="row">
+          <label class="opt-label">范围</label><input id="randMin" type="number" value="1" class="ctl" style="width:90px">
+          <span class="opt-label">~</span><input id="randMax" type="number" value="100" class="ctl" style="width:90px">
+          <label class="opt-label">个数</label><input id="randCount" type="number" value="5" min="1" max="100" class="ctl" style="width:80px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)"><input type="checkbox" id="randInt" checked> 仅整数</label>
+          <button class="btn primary" data-run="rand">生成</button>
+        </div>
+        <label class="lbl">输出（每行一个）</label><textarea id="randOut" class="code" readonly></textarea>
+      </div>
+    </section>
+
+    <!-- ============ UUID 生成 ============ -->
+    <section class="tool" id="t-uuid">
+      <div class="tool-head"><h2>UUID v4 生成</h2><p>基于 crypto.getRandomValues 生成符合 RFC 4122 的 UUID。</p></div>
+      <div class="panel">
+        <div class="row">
+          <label class="opt-label">生成个数</label><input id="uuidCount" type="number" value="5" min="1" max="500" class="ctl" style="width:90px">
+          <button class="btn primary" data-run="uuid">生成</button>
+        </div>
+        <label class="lbl">输出</label><textarea id="uuidOut" class="code" readonly></textarea>
+        <div class="auxbar"><button class="btn ghost" data-copy="uuidOut">复制结果</button></div>
+      </div>
+    </section>
+
+    <!-- ============ 随机密码 ============ -->
+    <section class="tool" id="t-pass">
+      <div class="tool-head"><h2>随机密码生成</h2><p>按字符集与长度生成随机密码，并给出强度评估。</p></div>
+      <div class="panel">
+        <div class="row">
+          <label class="opt-label">长度</label><input id="passLen" type="number" value="12" min="4" max="64" class="ctl" style="width:80px">
+          <label class="opt-label">生成个数</label><input id="passCount" type="number" value="3" min="1" max="50" class="ctl" style="width:80px">
+          <button class="btn primary" data-run="pass">生成</button>
+        </div>
+        <div class="row">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)"><input type="checkbox" id="passUpper" checked> 大写字母</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)"><input type="checkbox" id="passLower" checked> 小写字母</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)"><input type="checkbox" id="passDigit" checked> 数字</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)"><input type="checkbox" id="passSym" checked> 符号</label>
+        </div>
+        <label class="lbl">输出（每行一个，附强度）</label><textarea id="passOut" class="code" readonly></textarea>
+      </div>
+    </section>
+
+    <!-- ============ 正则测试 ============ -->
+    <section class="tool" id="t-regex">
+      <div class="tool-head"><h2>正则表达式测试</h2><p>测试正则匹配结果并高亮显示所有命中位置。</p></div>
+      <div class="panel">
+        <div class="row">
+          <input id="regexPat" class="ctl" style="flex:1" placeholder="正则表达式，如 \bjson\w*\b">
+          <span class="opt-label">标记</span>
+          <div class="seg" id="regexFlag">
+            <button data-v="g" class="on">g</button><button data-v="i">i</button><button data-v="m">m</button><button data-v="s">s</button>
+          </div>
+          <button class="btn primary" data-run="regex">测试</button>
+        </div>
+        <label class="lbl">测试文本</label><textarea id="regexText" class="code" spellcheck="false" placeholder="json.cn 提供 JSON 工具，json 数据解析"></textarea>
+        <div class="status" id="regexStatus"></div>
+        <div class="regex-out" id="regexOut" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============ 图片转 Base64 ============ -->
+    <section class="tool" id="t-img64">
+      <div class="tool-head"><h2>图片转 Base64</h2><p>上传图片生成 Data URL（Base64），支持预览、复制与下载。</p></div>
+      <div class="panel">
+        <div class="drop" id="imgDrop">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          <div>点击选择图片，或直接拖拽到此处</div>
+          <div style="font-size:12px;color:var(--text3)">支持 png / jpg / gif / webp / svg</div>
+          <input type="file" id="imgFile" hidden accept="image/*">
+        </div>
+        <div class="img-preview" id="imgPreview" hidden>
+          <img id="imgPreviewImg" alt="预览">
+          <div class="meta" id="imgMeta"></div>
+        </div>
+        <label class="lbl">Data URL / Base64</label>
+        <textarea id="imgOut" class="code" readonly></textarea>
+        <div class="auxbar">
+          <button class="btn ghost" id="btnImgCopy">复制 Base64</button>
+          <button class="btn ghost" id="btnImgDownload">下载 .txt</button>
+          <button class="btn ghost" id="btnImgClear">清空</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="overlay" onclick="toggleMenu(false)"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ================= 通用工具 ================= */
+const $ = id => document.getElementById(id);
+const $$ = (sel, ctx) => Array.from((ctx || document).querySelectorAll(sel));
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const utf8Bytes = s => new TextEncoder().encode(s).length;
+const pad2 = n => String(n).padStart(2,'0');
+let toastTimer = null, autoSilent = false;
+function toast(msg, isErr){
+  if (autoSilent) return;
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = isErr ? 'err show' : 'show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 2200);
+}
+function copyText(text, label){
+  const done = () => toast((label || '内容') + '已复制到剪贴板');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch(e){ toast('复制失败，请手动选择复制','err'); }
+  document.body.removeChild(ta);
+}
+function copyTextArea(id, label){ copyText($(id).value, label); }
+function downloadText(name, text, mime){
+  const blob = new Blob([text], {type: mime || 'application/octet-stream'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1200);
+}
+function fmtMs(t0){ const ms = performance.now() - t0; return ms < 1 ? '<1 ms' : Math.round(ms) + ' ms'; }
+function fmtInt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+/* ================= 分段控件 / 通用绑定 ================= */
+function bindSeg(el){
+  if (!el) return;
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    $$('button', el).forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  });
+}
+['indentSeg','sortSeg','xmlMode','yamlMode','csvMode','csvDelim','urlMode','b64Mode','uniMode','entMode','caseMode','revMode','trimMode','hashSel','sortMode'].forEach(id => bindSeg($(id)));
+$('regexFlag').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b) b.classList.toggle('on');
+});
+const RUN = {};
+$$('[data-run]').forEach(b => b.addEventListener('click', () => { const fn = RUN[b.dataset.run]; if (fn) fn(); }));
+$$('[data-copy]').forEach(b => b.addEventListener('click', () => { copyTextArea(b.dataset.copy, ''); }));
+$$('[data-clear]').forEach(b => b.addEventListener('click', () => { $(b.dataset.clear).value = ''; }));
+
+/* ================= 自研 JSON 解析器（带行列定位） ================= */
+const ERR = Symbol('jsonErr');
+function parseJsonEx(src){
+  if (src.charCodeAt(0) === 0xFEFF) src = src.slice(1);
+  let i = 0, line = 1, col = 1;
+  const len = src.length;
+  const isErr = x => x && typeof x === 'object' && x[ERR] === true;
+  const fail = msg => ({ [ERR]: true, msg, line, col });
+  function ws(){
+    while (i < len){
+      const c = src[i];
+      if (c === ' ' || c === '\t' || c === '\r'){ i++; col++; }
+      else if (c === '\n'){ i++; line++; col = 1; }
+      else break;
+    }
+  }
+  function parseStr(){
+    i++; col++; let out = '';
+    while (i < len){
+      const c = src[i];
+      if (c === '"'){ i++; col++; return out; }
+      if (c === '\\'){
+        i++; col++;
+        if (i >= len) return fail('字符串中意外的结束');
+        const e = src[i]; i++; col++;
+        switch (e){
+          case '"': out += '"'; break; case '\\': out += '\\'; break; case '/': out += '/'; break;
+          case 'b': out += '\b'; break; case 'f': out += '\f'; break; case 'n': out += '\n'; break;
+          case 'r': out += '\r'; break; case 't': out += '\t'; break;
+          case 'u':
+            if (i + 4 > len || !/^[0-9a-fA-F]{4}$/.test(src.slice(i, i + 4))) return fail('无效的 \\u 转义序列');
+            out += String.fromCharCode(parseInt(src.slice(i, i + 4), 16));
+            i += 4; col += 4;
+            break;
+          default: return fail('无效的转义字符 \\' + e);
+        }
+      } else if (c.charCodeAt(0) < 0x20){ return fail('字符串中包含未转义的控制字符'); }
+      else { out += c; i++; col++; }
+    }
+    return fail('字符串未闭合');
+  }
+  function parseNum(){
+    const m = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(src.slice(i));
+    if (!m) return fail('无效的数字字面量');
+    const v = parseFloat(m[0]);
+    i += m[0].length; col += m[0].length;
+    return v;
+  }
+  function parseLit(lit, v){
+    if (src.startsWith(lit, i)){ i += lit.length; col += lit.length; return v; }
+    return fail('意外的标识符 "' + src.slice(i, i + 8) + '"');
+  }
+  function parseValue(){
+    ws();
+    if (i >= len) return fail('意外的文件结束');
+    const c = src[i];
+    if (c === '{') return parseObj();
+    if (c === '[') return parseArr();
+    if (c === '"') return parseStr();
+    if (c === 't') return parseLit('true', true);
+    if (c === 'f') return parseLit('false', false);
+    if (c === 'n') return parseLit('null', null);
+    if (c === '-' || (c >= '0' && c <= '9')) return parseNum();
+    return fail('意外的字符 "' + c + '"');
+  }
+  function parseObj(){
+    i++; col++; const obj = {};
+    ws();
+    if (src[i] === '}'){ i++; col++; return obj; }
+    while (i < len){
+      ws();
+      if (src[i] !== '"') return fail('对象的键必须是带双引号的字符串');
+      const k = parseStr();
+      if (isErr(k)) return k;
+      ws();
+      if (src[i] !== ':') return fail('键 "' + k + '" 后缺少冒号 ":"');
+      i++; col++;
+      const v = parseValue();
+      if (isErr(v)) return v;
+      obj[k] = v;
+      ws();
+      if (src[i] === ','){ i++; col++; continue; }
+      if (src[i] === '}'){ i++; col++; return obj; }
+      return fail('对象中缺少 "," 或 "}"');
+    }
+    return fail('对象未闭合');
+  }
+  function parseArr(){
+    i++; col++; const arr = [];
+    ws();
+    if (src[i] === ']'){ i++; col++; return arr; }
+    while (i < len){
+      ws();
+      const v = parseValue();
+      if (isErr(v)) return v;
+      arr.push(v);
+      ws();
+      if (src[i] === ','){ i++; col++; continue; }
+      if (src[i] === ']'){ i++; col++; return arr; }
+      return fail('数组中缺少 "," 或 "]"');
+    }
+    return fail('数组未闭合');
+  }
+  const v = parseValue();
+  if (isErr(v)) return { ok:false, error:v.msg, line:v.line, col:v.col };
+  ws();
+  if (i < len) return { ok:false, error:'解析完成后仍有未消费的内容（第 ' + line + ' 行，第 ' + col + ' 列）', line, col };
+  return { ok:true, value:v };
+}
+function snippetAt(src, line, col){
+  const lines = src.split('\n');
+  const l = Math.min(Math.max(1, line), lines.length);
+  const text = lines[l - 1] || '';
+  const caret = ' '.repeat(Math.min(Math.max(0, col - 1), Math.max(0, text.length))) + '^';
+  return (l + ' | ' + text + '\n   | ' + caret);
+}
+
+/* ================= JSON 输出处理 ================= */
+function sortJSON(v, desc){
+  if (Array.isArray(v)) return v.map(x => sortJSON(x, desc));
+  if (v && typeof v === 'object'){
+    const out = {};
+    Object.keys(v).sort((a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)).forEach(k => { out[k] = sortJSON(v[k], desc); });
+    return out;
+  }
+  return v;
+}
+function highlightJson(text){
+  const re = /"(?:\\.|[^"\\])*"(?=\s*:)|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\btrue\b|\bfalse\b|\bnull\b|[{}[\],:]/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(text))){
+    out += esc(text.slice(last, m.index));
+    const tok = m[0];
+    let cls = 'j-p';
+    if (tok[0] === '"') cls = /^\s*:/.test(text.slice(m.index + tok.length)) ? 'j-k' : 'j-s';
+    else if (/^-?\d/.test(tok)) cls = 'j-n';
+    else if (tok === 'true' || tok === 'false') cls = 'j-b';
+    else if (tok === 'null') cls = 'j-null';
+    out += '<span class="' + cls + '">' + esc(tok) + '</span>';
+    last = m.index + tok.length;
+  }
+  return out + esc(text.slice(last));
+}
+function jsonEscapeText(raw){
+  let out = '';
+  for (const ch of raw){
+    const code = ch.codePointAt(0);
+    if (ch === '"') out += '\\"';
+    else if (ch === '\\') out += '\\\\';
+    else if (ch === '\n') out += '\\n';
+    else if (ch === '\r') out += '\\r';
+    else if (ch === '\t') out += '\\t';
+    else if (code < 0x20) out += '\\u' + code.toString(16).padStart(4, '0');
+    else out += ch;
+  }
+  return out;
+}
+function jsonUnescapeText(raw){
+  let out = '', i = 0;
+  while (i < raw.length){
+    const c = raw[i];
+    if (c === '\\' && i + 1 < raw.length){
+      const e = raw[i + 1]; i += 2;
+      if (e === '"') out += '"';
+      else if (e === '\\') out += '\\';
+      else if (e === '/') out += '/';
+      else if (e === 'n') out += '\n';
+      else if (e === 'r') out += '\r';
+      else if (e === 't') out += '\t';
+      else if (e === 'b') out += '\b';
+      else if (e === 'f') out += '\f';
+      else if (e === 'u' && i + 4 <= raw.length && /^[0-9a-fA-F]{4}$/.test(raw.slice(i, i + 4))){
+        out += String.fromCharCode(parseInt(raw.slice(i, i + 4), 16)); i += 4;
+      } else { out += e; }
+    } else { out += c; i++; }
+  }
+  return out;
+}
+
+/* ================= 主页面：JSON 格式化 / 压缩 / 校验 / 转义 ================= */
+const fmt = { indent:'4', sort:'none', view:'text', val:null, has:false, outText:'', autoAct:'format' };
+function setSegGroup(segEl, val){
+  $$('button', segEl).forEach(b => {
+    const key = b.dataset.v !== undefined ? b.dataset.v : b.dataset.view;
+    b.classList.toggle('on', key === val);
+  });
+}
+$('indentSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $$('button', $('indentSeg')).forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); fmt.indent = b.dataset.indent;
+});
+$('sortSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $$('button', $('sortSeg')).forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); fmt.sort = b.dataset.sort;
+});
+function getIndentStr(){
+  const m = { 2:'  ', 4:'    ', 8:'        ', tab:'\t' };
+  return m[fmt.indent] || '  ';
+}
+function showFmtErr(r){
+  const box = $('errBox'); box.hidden = false;
+  $('errPos').textContent = '· 第 ' + r.line + ' 行，第 ' + r.col + ' 列';
+  $('errMsg').textContent = r.error + '\n' + snippetAt($('jsonIn').value, r.line, r.col);
+  $('jsonStatus').textContent = '解析失败';
+  $('jsonStatus').className = 'status err';
+  $('jsonMeta').textContent = '';
+  $('jsonOut').innerHTML = '';
+  fmt.val = null; fmt.has = false; fmt.outText = '';
+  $('treeOut').innerHTML = ''; $('tableOut').innerHTML = '';
+  $('pathResult').innerHTML = ''; $('pathCount').textContent = '';
+  setSegGroup($('outTabs'), 'text'); fmt.view = 'text'; renderFmtOutput();
+}
+function renderFmtOutput(){
+  const v = fmt.view;
+  $('jsonOut').hidden = v !== 'text';
+  $('treeOut').hidden = v !== 'tree';
+  $('tableOut').hidden = v !== 'table';
+  $('pathOut').hidden = v !== 'jsonpath';
+  if (v === 'tree') $('treeOut').innerHTML = fmt.has ? treeHtml(fmt.val) : '';
+  if (v === 'table'){
+    if (fmt.has) renderFmtTable();
+    else $('tableOut').innerHTML = '';
+  }
+}
+function renderFmtTable(){
+  const { rows, cols } = flattenRows(fmt.val);
+  $('tableOut').innerHTML = tableHtml(rows, cols);
+}
+$('outTabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  $$('.tab', $('outTabs')).forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  fmt.view = b.dataset.view;
+  renderFmtOutput();
+});
+function runFmtAction(act){
+  fmt.autoAct = act;
+  const src = $('jsonIn').value;
+  if (!src.trim()){ toast('请先输入 JSON 文本', 'err'); return; }
+  if (act === 'escape'){
+    fmt.outText = jsonEscapeText(src); fmt.has = false; fmt.val = null;
+    $('errBox').hidden = true; showOutText(fmt.outText, '已转义', true); return;
+  }
+  if (act === 'unescape'){
+    fmt.outText = jsonUnescapeText(src); fmt.has = false; fmt.val = null;
+    $('errBox').hidden = true; showOutText(fmt.outText, '已反转义', true); return;
+  }
+  const t0 = performance.now();
+  const r = parseJsonEx(src);
+  if (!r.ok){ showFmtErr(r); return; }
+  fmt.val = r.value; fmt.has = true;
+  let out;
+  if (act === 'minify') out = JSON.stringify(r.value);
+  else out = JSON.stringify(r.value, null, getIndentStr());
+  if (fmt.sort !== 'none') out = JSON.stringify(sortJSON(r.value, fmt.sort === 'desc'), null, act === 'minify' ? '' : getIndentStr());
+  fmt.outText = out;
+  $('errBox').hidden = true;
+  showOutText(out, act === 'format' ? '格式化完成' : (act === 'minify' ? '压缩完成' : '校验通过：合法的 JSON'));
+  if (act === 'validate'){ const nodes = countNodes(r.value); $('jsonStatus').textContent = '✓ 合法 JSON · 节点数 ' + fmtInt(nodes.total) + ' · 深度 ' + nodes.depth; }
+  $('jsonStatus').className = 'status ok';
+  $('jsonMeta').textContent = fmtInt(out.length) + ' 字符 · ' + out.split('\n').length + ' 行 · ' + fmtMs(t0);
+}
+function showOutText(text, statusMsg, forceText){
+  $('jsonOut').innerHTML = highlightJson(text);
+  if (forceText){
+    setSegGroup($('outTabs'), 'text');
+    fmt.view = 'text';
+  }
+  renderFmtOutput();
+  if (!forceText && fmt.view === 'jsonpath' && $('pathExpr').value.trim()){
+    runPathQuery($('pathExpr').value, $('pathResult'), $('pathCount'));
+  }
+  $('jsonStatus').textContent = statusMsg || '完成';
+  $('jsonStatus').className = 'status ok';
+}
+$('fmtToolbar').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  runFmtAction(b.dataset.act);
+});
+$('btnExample').addEventListener('click', () => {
+  $('jsonIn').value = JSON.stringify({
+    name: 'json.cn', slogan: 'JSON 在线解析工具', online: true, users: 1280000, version: 3.14,
+    tags: ['json', '格式化', '压缩', '校验'],
+    meta: { author: 'JSON.cn Team', openSource: false, supported: true },
+    stats: { rate: 0.986, rank: 1 },
+    items: [
+      { id: 1, type: 'format', status: 'active' },
+      { id: 2, type: 'convert', status: 'active' },
+      { id: 3, type: 'tools', status: 'inactive' }
+    ],
+    empty: null, nested: { a: { b: { c: { d: '深层次值' } } } }
+  }, null, 2);
+  runFmtAction('format');
+});
+$('btnClear').addEventListener('click', () => {
+  $('jsonIn').value = ''; $('jsonOut').innerHTML = '';
+  $('errBox').hidden = true; fmt.val = null; fmt.has = false; fmt.outText = '';
+  $('jsonStatus').textContent = ''; $('jsonMeta').textContent = '';
+  $('treeOut').innerHTML = ''; $('tableOut').innerHTML = '';
+  $('pathResult').innerHTML = ''; $('pathCount').textContent = '';
+  setSegGroup($('outTabs'), 'text'); fmt.view = 'text'; renderFmtOutput();
+});
+$('btnUpload').addEventListener('click', () => $('jsonFile').click());
+$('jsonFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { $('jsonIn').value = rd.result; runFmtAction('format'); toast('已载入文件 ' + f.name); };
+  rd.readAsText(f);
+  e.target.value = '';
+});
+$('btnCopyOut').addEventListener('click', () => {
+  if (!fmt.outText){ toast('当前没有可复制的结果', 'err'); return; }
+  copyText(fmt.outText, '结果');
+});
+$('btnDownload').addEventListener('click', () => {
+  if (!fmt.outText){ toast('当前没有可下载的结果', 'err'); return; }
+  downloadText('formatted.json', fmt.outText, 'application/json');
+});
+$('btnPathRun').addEventListener('click', () => runPathQuery($('pathExpr').value, $('pathResult'), $('pathCount')));
+$('btnErrCopy').addEventListener('click', () => copyText($('errMsg').textContent, '错误信息'));
+
+/* ================= JSONPath ================= */
+function tokenizePath(expr){
+  expr = expr.trim();
+  if (expr[0] === '$') expr = expr.slice(1);
+  const segs = []; let idx = 0; const n = expr.length;
+  while (idx < n){
+    const c = expr[idx];
+    if (c === '.'){
+      if (expr[idx + 1] === '.'){
+        idx += 2;
+        let j = idx; while (j < n && /[\w-]/.test(expr[j])) j++;
+        const name = expr.slice(idx, j) || '*';
+        segs.push({ type:'rec', name }); idx = j;
+      } else {
+        idx++;
+        let j = idx; while (j < n && /[\w-]/.test(expr[j])) j++;
+        const name = expr.slice(idx, j);
+        if (!name) throw new Error('无效的路径段："." 后缺少键名');
+        segs.push({ type:'key', name }); idx = j;
+      }
+    } else if (c === '['){
+      const close = expr.indexOf(']', idx);
+      if (close < 0) throw new Error('缺少 "]"');
+      segs.push({ type:'bracket', inner: expr.slice(idx + 1, close).trim() });
+      idx = close + 1;
+    } else if (c === ' ' || c === '\t'){ idx++; }
+    else {
+      let j = idx; while (j < n && /[\w-]/.test(expr[j])) j++;
+      if (j === idx) throw new Error('无效的路径字符 "' + c + '"');
+      segs.push({ type:'key', name: expr.slice(idx, j) }); idx = j;
+    }
+  }
+  return segs;
+}
+function parseFilter(inner){
+  const m = inner.match(/^\?\(\s*@(?:\.([\w-]+)|\[['"]?([\w-]+)['"]?\])\s*(==|!=|>=|<=|>|<)\s*(-?\d+(?:\.\d+)?|'[^']*'|"[^"]*"|true|false|null)\s*\)$/);
+  if (!m) return null;
+  const key = m[1] || m[2], op = m[3], raw = m[4];
+  let rhs;
+  if (/^['"]/.test(raw)) rhs = raw.slice(1, -1);
+  else if (raw === 'true') rhs = true;
+  else if (raw === 'false') rhs = false;
+  else if (raw === 'null') rhs = null;
+  else rhs = parseFloat(raw);
+  return node => {
+    if (!node || typeof node !== 'object' || Array.isArray(node)) return false;
+    const val = node[key];
+    switch (op){
+      case '==': return val == rhs;
+      case '!=': return val != rhs;
+      case '>': return val > rhs;
+      case '<': return val < rhs;
+      case '>=': return val >= rhs;
+      case '<=': return val <= rhs;
+    }
+    return false;
+  };
+}
+function jsonPathQuery(data, expr){
+  const segs = tokenizePath(expr);
+  const results = [];
+  function walk(node, path, si){
+    if (si >= segs.length){ results.push({ path, value: node }); return; }
+    const seg = segs[si];
+    if (seg.type === 'key'){
+      if (seg.name === '*'){
+        if (Array.isArray(node)) node.forEach((v, i) => walk(v, path + '[' + i + ']', si + 1));
+        else if (node && typeof node === 'object') Object.keys(node).forEach(k => walk(node[k], path + '.' + k, si + 1));
+      } else if (node && typeof node === 'object' && !Array.isArray(node) && Object.prototype.hasOwnProperty.call(node, seg.name)){
+        walk(node[seg.name], path + '.' + seg.name, si + 1);
+      }
+    } else if (seg.type === 'rec'){
+      walkIntoKeys(node, path, seg.name, si);
+    } else {
+      const inn = seg.inner;
+      if (inn === '*'){
+        if (Array.isArray(node)) node.forEach((v, i) => walk(v, path + '[' + i + ']', si + 1));
+        else if (node && typeof node === 'object') Object.keys(node).forEach(k => walk(node[k], path + '.' + k, si + 1));
+      } else if (/^-?\d+$/.test(inn)){
+        let k = parseInt(inn, 10);
+        if (k < 0 && Array.isArray(node)) k += node.length;
+        if (Array.isArray(node) && k >= 0 && k < node.length) walk(node[k], path + '[' + k + ']', si + 1);
+      } else if (inn === 'last' && Array.isArray(node)){
+        if (node.length) walk(node[node.length - 1], path + '[' + (node.length - 1) + ']', si + 1);
+      } else if (inn.startsWith('?(')){
+        const f = parseFilter(inn);
+        if (Array.isArray(node)) node.forEach((v, i) => { if (!f || f(v)) walk(v, path + '[' + i + ']', si + 1); });
+        else if (f && f(node)) walk(node, path, si + 1);
+      } else if (inn.includes(',')){
+        const parts = inn.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, ''));
+        if (Array.isArray(node)){
+          parts.forEach(p => { const k = parseInt(p, 10); if (!isNaN(k) && k >= 0 && k < node.length) walk(node[k], path + '[' + k + ']', si + 1); });
+        } else if (node && typeof node === 'object'){
+          parts.forEach(k => { if (Object.prototype.hasOwnProperty.call(node, k)) walk(node[k], path + '.' + k, si + 1); });
+        }
+      } else if (/^['"].*['"]$/.test(inn)){
+        const k = inn.slice(1, -1);
+        if (node && typeof node === 'object' && !Array.isArray(node) && Object.prototype.hasOwnProperty.call(node, k)) walk(node[k], path + '.' + k, si + 1);
+      } else if (/^[\w-]+$/.test(inn)){
+        if (node && typeof node === 'object' && !Array.isArray(node) && Object.prototype.hasOwnProperty.call(node, inn)) walk(node[inn], path + '.' + inn, si + 1);
+      }
+    }
+  }
+  function walkIntoKeys(node, path, name, si){
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)){
+      node.forEach((v, i) => {
+        walkIntoKeys(v, path + '[' + i + ']', name, si);
+      });
+      return;
+    }
+    Object.keys(node).forEach(k => {
+      const child = node[k];
+      const p = path + '.' + k;
+      if (name === '*' || String(k) === name) walk(child, p, si + 1);
+      walkIntoKeys(child, p, name, si);
+    });
+  }
+  walk(data, '$', 0);
+  return results;
+}
+function runPathQuery(expr, box, countEl){
+  const parsed = parseJsonEx($('jsonIn').value);
+  if (!parsed.ok){ toast('请先输入合法的 JSON 再进行查询', 'err'); return; }
+  let res;
+  try { res = jsonPathQuery(parsed.value, expr); }
+  catch (e){ toast(e.message, 'err'); return; }
+  if (!res.length){ box.innerHTML = '<div class="pr"><span class="p">无匹配结果</span></div>'; countEl.textContent = '共 0 条'; return; }
+  box.innerHTML = res.map(r =>
+    '<div class="pr"><span class="p">' + esc(r.path) + '</span><span class="pv">' + esc(typeof r.value === 'string' ? '"' + r.value + '"' : JSON.stringify(r.value)) + '</span></div>'
+  ).join('');
+  countEl.textContent = '共 ' + res.length + ' 条匹配';
+}
+
+/* ================= 树形视图 ================= */
+function treeHtml(v){
+  function nodeHtml(x, key){
+    if (x === null || x === undefined) return '<li><span class="tkey">' + esc(key) + '</span>: <span class="tval-null">null</span></li>';
+    const t = typeof x;
+    if (t === 'string') return '<li><span class="tkey">' + esc(key) + '</span>: <span class="tval-s">' + esc(JSON.stringify(x)) + '</span></li>';
+    if (t === 'number') return '<li><span class="tkey">' + esc(key) + '</span>: <span class="tval-n">' + esc(String(x)) + '</span></li>';
+    if (t === 'boolean') return '<li><span class="tkey">' + esc(key) + '</span>: <span class="tval-b">' + x + '</span></li>';
+    if (Array.isArray(x)){
+      if (!x.length) return '<li><span class="tkey">' + esc(key) + '</span>: <span class="tmeta">[] 空数组</span></li>';
+      const inner = x.map((item, i) => nodeHtml(item, i)).join('');
+      return '<li><span class="tchev" data-open="1">▾</span><span class="tkey">' + esc(key) + '</span>: <span class="tmeta">[' + x.length + ']</span><ul>' + inner + '</ul></li>';
+    }
+    const keys = Object.keys(x);
+    if (!keys.length) return '<li><span class="tkey">' + esc(key) + '</span>: <span class="tmeta">{}</span></li>';
+    const inner = keys.map(k => nodeHtml(x[k], k)).join('');
+    return '<li><span class="tchev" data-open="1">▾</span><span class="tkey">' + esc(key) + '</span>: <span class="tmeta">{' + keys.length + '}</span><ul>' + inner + '</ul></li>';
+  }
+  if (Array.isArray(v)){
+    return '<ul>' + v.map((item, i) => nodeHtml(item, i)).join('') + '</ul>';
+  }
+  if (v && typeof v === 'object'){
+    return '<ul>' + Object.keys(v).map(k => nodeHtml(v[k], k)).join('') + '</ul>';
+  }
+  return esc(String(v));
+}
+function bindTreeToggle(container){
+  container.addEventListener('click', e => {
+    const c = e.target.closest('.tchev');
+    if (!c) return;
+    const ul = c.nextElementSibling;
+    if (!ul || ul.tagName !== 'UL') return;
+    const open = ul.style.display !== 'none';
+    ul.style.display = open ? 'none' : '';
+    c.textContent = open ? '▸' : '▾';
+    c.dataset.open = open ? '0' : '1';
+  });
+}
+function treeSetAll(container, open){
+  $$('.tchev', container).forEach(c => {
+    const ul = c.nextElementSibling;
+    if (ul && ul.tagName === 'UL'){
+      ul.style.display = open ? '' : 'none';
+      c.textContent = open ? '▾' : '▸';
+      c.dataset.open = open ? '1' : '0';
+    }
+  });
+}
+
+/* ================= 表格视图（展平） ================= */
+function flattenRows(v){
+  if (!Array.isArray(v)) v = [v];
+  const rows = []; const cols = [];
+  for (const item of v){
+    const flat = {};
+    (function walk(x, prefix){
+      if (Array.isArray(x)){
+        flat[prefix || 'value'] = JSON.stringify(x);
+      } else if (x && typeof x === 'object'){
+        const keys = Object.keys(x);
+        if (!keys.length){ flat[prefix || 'value'] = ''; return; }
+        keys.forEach(k => walk(x[k], prefix ? prefix + '.' + k : k));
+      } else {
+        flat[prefix || 'value'] = (x === null ? 'null' : String(x));
+      }
+    })(item, '');
+    rows.push(flat);
+    Object.keys(flat).forEach(k => { if (!cols.includes(k)) cols.push(k); });
+  }
+  return { rows, cols };
+}
+function tableHtml(rows, cols){
+  if (!cols.length) return '<div class="tmeta" style="padding:12px">无可展示的字段</div>';
+  let h = '<table><colgroup>' + cols.map(() => '<col>').join('') + '</colgroup><thead><tr>' + cols.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr></thead><tbody>';
+  rows.forEach(r => { h += '<tr>' + cols.map(c => '<td>' + esc(r[c] === undefined ? '' : r[c]) + '</td>').join('') + '</tr>'; });
+  return h + '</tbody></table>';
+}
+
+/* ================= JSON 对比（LCS 逐行 Diff） ================= */
+function diffLines(aText, bText){
+  const a = aText.split('\n'), b = bText.split('\n');
+  const n = a.length, m = b.length;
+  if (n * m > 4000000) return null;
+  const dp = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const ops = []; let i = 0, j = 0;
+  while (i < n && j < m){
+    if (a[i] === b[j]){ ops.push({ t:'=', a: a[i], b: b[j] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]){ ops.push({ t:'-', a: a[i] }); i++; }
+    else { ops.push({ t:'+', b: b[j] }); j++; }
+  }
+  while (i < n){ ops.push({ t:'-', a: a[i] }); i++; }
+  while (j < m){ ops.push({ t:'+', b: b[j] }); j++; }
+  return ops;
+}
+$('btnDiffRun').addEventListener('click', () => {
+  const srcA = $('diffA').value, srcB = $('diffB').value;
+  if (!srcA.trim() || !srcB.trim()){ toast('请输入两段 JSON', 'err'); return; }
+  const pa = parseJsonEx(srcA), pb = parseJsonEx(srcB);
+  if (!pa.ok){ toast('左侧 JSON 错误：' + pa.error, 'err'); return; }
+  if (!pb.ok){ toast('右侧 JSON 错误：' + pb.error, 'err'); return; }
+  const ops = diffLines(JSON.stringify(pa.value, null, 2), JSON.stringify(pb.value, null, 2));
+  const out = $('diffOut'); out.hidden = false;
+  if (!ops){ out.innerHTML = '<div class="tmeta" style="padding:12px">文本过大，已跳过对比</div>'; $('diffSum').textContent = ''; return; }
+  let add = 0, del = 0, na = 1, nb = 1;
+  let html = '';
+  ops.forEach(op => {
+    if (op.t === '='){ html += '<div class="drow d-ctx"><span class="dnum">' + na + '</span><span class="dnum">' + nb + '</span><span class="dtext">' + esc(op.a) + '</span></div>'; na++; nb++; }
+    else if (op.t === '-'){ html += '<div class="drow d-del"><span class="dnum del">' + na + '</span><span class="dnum">&nbsp;</span><span class="dtext">' + esc(op.a) + '</span></div>'; na++; del++; }
+    else { html += '<div class="drow d-add"><span class="dnum">&nbsp;</span><span class="dnum add">' + nb + '</span><span class="dtext">' + esc(op.b) + '</span></div>'; nb++; add++; }
+  });
+  out.innerHTML = html;
+  $('diffSum').textContent = '删除 ' + del + ' 行 · 新增 ' + add + ' 行 · 共 ' + ops.length + ' 行';
+});
+
+/* ================= JSON 统计 ================= */
+function countNodes(v){
+  let total = 0, keys = 0, depth = 0;
+  const types = { object:0, array:0, string:0, number:0, boolean:0, null:0 };
+  (function walk(x, d){
+    total++;
+    if (d > depth) depth = d;
+    if (x === null || x === undefined) types.null++;
+    else if (Array.isArray(x)){ types.array++; x.forEach(i => walk(i, d + 1)); }
+    else if (typeof x === 'object'){
+      types.object++; const ks = Object.keys(x); keys += ks.length;
+      ks.forEach(k => walk(x[k], d + 1));
+    }
+    else if (typeof x === 'string') types.string++;
+    else if (typeof x === 'number') types.number++;
+    else if (typeof x === 'boolean') types.boolean++;
+  })(v, 0);
+  return { total, keys, depth, types };
+}
+function statCards(items){
+  return items.map(it =>
+    '<div class="stat"><div class="v">' + it.v + '</div><div class="k">' + it.k + '</div></div>'
+  ).join('');
+}
+function renderStats(){
+  const src = $('statsIn').value;
+  if (!src.trim()){ toast('请先输入 JSON', 'err'); return; }
+  const r = parseJsonEx(src);
+  if (!r.ok){
+    toast('JSON 解析失败：' + r.error, 'err');
+    $('statsOut').innerHTML = ''; $('statsBar').hidden = true;
+    return;
+  }
+  const c = countNodes(r.value);
+  const formatted = JSON.stringify(r.value, null, 2);
+  const rootType = Array.isArray(r.value) ? '数组' : (r.value && typeof r.value === 'object' ? '对象' : typeof r.value);
+  $('statsOut').innerHTML = statCards([
+    { v: fmtInt(c.total), k: '总节点数' },
+    { v: fmtInt(c.keys), k: '键数量' },
+    { v: c.depth, k: '最大深度' },
+    { v: fmtInt(src.trim().length), k: '原始字符数' },
+    { v: fmtInt(utf8Bytes(formatted)), k: 'UTF-8 字节' },
+    { v: esc(rootType), k: '顶层类型' }
+  ]);
+  const colorMap = { object:'#0071e3', array:'#6e56cf', string:'#1d9a3e', number:'#c93400', boolean:'#b25000', null:'#8e8e93' };
+  const labelMap = { object:'对象', array:'数组', string:'字符串', number:'数字', boolean:'布尔', null:'null' };
+  const total = c.types.object + c.types.array + c.types.string + c.types.number + c.types.boolean + c.types.null;
+  const bar = $('statsBar'); bar.hidden = false;
+  $('statsBarInner').innerHTML = Object.keys(labelMap).filter(k => c.types[k] > 0).map(k =>
+    '<span style="width:' + (c.types[k] / total * 100).toFixed(1) + '%;background:' + colorMap[k] + '" title="' + labelMap[k] + ' ' + c.types[k] + '"></span>'
+  ).join('');
+  $('statsLegend').innerHTML = Object.keys(labelMap).filter(k => c.types[k] > 0).map(k =>
+    '<span><i style="background:' + colorMap[k] + '"></i>' + labelMap[k] + ' ' + c.types[k] + '</span>'
+  ).join('');
+}
+$('btnStatsRun').addEventListener('click', renderStats);
+/* ================= XML ↔ JSON ================= */
+function jsonToXml(v, rootName){
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  function node(name, x){
+    if (x === null || x === undefined) return '<' + name + '/>';
+    if (typeof x === 'object' && !Array.isArray(x)){
+      let attrs = '', text = '', kids = '';
+      for (const k of Object.keys(x)){
+        const val = x[k];
+        if (k.startsWith('@')) attrs += ' ' + k.slice(1) + '="' + esc(String(val)) + '"';
+        else if (k === '#text') text += esc(String(val));
+        else if (Array.isArray(val)){ if (val.length) val.forEach(item => kids += node(k, item)); }
+        else kids += node(k, val);
+      }
+      if (!kids) return text ? '<' + name + attrs + '>' + text + '</' + name + '>' : '<' + name + attrs + '/>';
+      return '<' + name + attrs + '>' + kids + '</' + name + '>';
+    }
+    if (Array.isArray(x)) return x.map(item => node(name, item)).join('');
+    return '<' + name + '>' + esc(String(x)) + '</' + name + '>';
+  }
+  const body = Array.isArray(v) ? v.map(item => node(rootName, item)).join('') : node(rootName, v);
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + body;
+}
+function xmlToJson(text){
+  const doc = new DOMParser().parseFromString(text, 'text/xml');
+  const perr = doc.querySelector('parsererror');
+  if (perr) throw new Error('XML 解析失败：' + (perr.textContent || '').trim().split('\n')[0]);
+  const root = doc.documentElement;
+  function conv(node){
+    const obj = {};
+    if (node.attributes) for (const a of node.attributes) obj['@' + a.name] = a.value;
+    const kids = [];
+    for (const ch of node.childNodes){
+      if (ch.nodeType === 3){ const t = ch.nodeValue.trim(); if (t) obj['#text'] = (obj['#text'] || '') + t; }
+      else if (ch.nodeType === 1) kids.push(ch);
+    }
+    const group = {};
+    kids.forEach(k => { (group[k.tagName] = group[k.tagName] || []).push(conv(k)); });
+    for (const k of Object.keys(group)) obj[k] = group[k].length > 1 ? group[k] : group[k][0];
+    return obj;
+  }
+  return JSON.stringify(conv(root), null, 2);
+}
+$('btnXmlRun').addEventListener('click', () => {
+  const mode = ($('xmlMode').querySelector('.on') || {}).dataset.v || 'j2x';
+  const src = $('xmlIn').value;
+  const status = $('xmlStatus');
+  if (!src.trim()){ toast('请输入内容', 'err'); return; }
+  try {
+    if (mode === 'j2x'){
+      const r = parseJsonEx(src);
+      if (!r.ok) throw new Error('JSON 解析失败：' + r.error + '（第 ' + r.line + ' 行，第 ' + r.col + ' 列）');
+      $('xmlOut').value = jsonToXml(r.value, $('xmlRoot').value.trim() || 'root');
+    } else {
+      $('xmlOut').value = xmlToJson(src);
+    }
+    status.textContent = '✓ 转换完成';
+    status.className = 'status ok';
+  } catch (e){ status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+});
+
+/* ================= YAML ↔ JSON ================= */
+function jsonToYaml(v){
+  const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
+  function q(s){
+    const numLike = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s);
+    const boolLike = /^(true|false|null|yes|no|on|off|~)$/i.test(s);
+    const special = /^[\s\-?:,\[\]{}#&*!|>'"%@`]/.test(s) || /[:\s#]\s/.test(s) || /[\n\r\t]/.test(s) || /: /.test(s) || s === '' || s !== s.trim();
+    return (numLike || boolLike || special) ? JSON.stringify(s) : s;
+  }
+  function emit(x, indent){
+    const pad = '  '.repeat(indent);
+    if (x === null) return 'null';
+    if (typeof x === 'boolean') return x ? 'true' : 'false';
+    if (typeof x === 'number') return String(x);
+    if (typeof x === 'string') return q(x);
+    if (Array.isArray(x)){
+      if (!x.length) return '[]';
+      const lines = [];
+      x.forEach(item => {
+        if (isObj(item) && Object.keys(item).length){
+          const ks = Object.keys(item);
+          const first = emit(item[ks[0]], indent + 1);
+          lines.push(first.includes('\n') ? pad + '- ' + q(ks[0]) + ':\n' + first : pad + '- ' + q(ks[0]) + ': ' + first);
+          ks.slice(1).forEach(k => {
+            const val = emit(item[k], indent + 1);
+            lines.push(val.includes('\n') ? pad + '  ' + q(k) + ':\n' + val : pad + '  ' + q(k) + ': ' + val);
+          });
+        } else {
+          lines.push(pad + '- ' + emit(item, indent + 1));
+        }
+      });
+      return lines.join('\n');
+    }
+    const ks = Object.keys(x);
+    if (!ks.length) return '{}';
+    return ks.map(k => {
+      const val = emit(x[k], indent + 1);
+      return val.includes('\n') ? pad + q(k) + ':\n' + val : pad + q(k) + ': ' + val;
+    }).join('\n');
+  }
+  return emit(v, 0);
+}
+function yamlToJson(text){
+  const lines = [];
+  text.split(/\r?\n/).forEach(raw => {
+    if (/^\s*#/.test(raw) || !raw.trim()) return;
+    lines.push({ raw: raw.replace(/\s+$/, ''), indent: raw.match(/^\s*/)[0].length });
+  });
+  let idx = 0;
+  const stripQ = s => s.replace(/^["']|["']$/g, '');
+  function scalar(s){
+    s = s.trim();
+    if (s[0] !== '"' && s[0] !== "'" && !/^[\[{]/.test(s)) s = s.replace(/\s+#.*$/, '');
+    if (s === '' || s === '~' || s === 'null') return null;
+    if (s === 'true' || s === 'yes' || s === 'on') return true;
+    if (s === 'false' || s === 'no' || s === 'off') return false;
+    if (/^[-+]?\d+$/.test(s)) return parseInt(s, 10);
+    if (/^[-+]?(\d+\.\d+|\.\d+)([eE][-+]?\d+)?$/.test(s)) return parseFloat(s);
+    if (s[0] === '"' && s[s.length - 1] === '"') return s.slice(1, -1).replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    if (s[0] === "'" && s[s.length - 1] === "'") return s.slice(1, -1).replace(/''/g, "'");
+    if ((s[0] === '[' && s[s.length - 1] === ']') || (s[0] === '{' && s[s.length - 1] === '}')){
+      try { return JSON.parse(s.replace(/([{,]\s*)(["']?)([A-Za-z_][\w-]*)\2\s*:/g, '$1"$3":')); } catch (e){ return s; }
+    }
+    return s;
+  }
+  function parseBlock(indent){
+    if (idx >= lines.length) return undefined;
+    const body = l => l.raw.replace(/^\s+/, '');
+    const isSeqLine = l => { const b = body(l); return b === '-' || /^-\s*\S/.test(b); };
+    const isSeq = isSeqLine(lines[idx]);
+    if (isSeq){
+      const arr = [];
+      while (idx < lines.length && lines[idx].indent === indent && isSeqLine(lines[idx])){
+        const rest = body(lines[idx]).replace(/^-\s*/, '');
+        if (rest === '-' || rest === ''){
+          idx++;
+          if (idx < lines.length && lines[idx].indent > indent) arr.push(parseBlock(lines[idx].indent));
+          else arr.push(null);
+        } else {
+          const km = rest.match(/^(["']?)([^:]+?)\1\s*:(.*)$/);
+          if (km && !/^[\[{]/.test(rest.trim())){
+            const obj = {};
+            const key = stripQ(km[2].trim());
+            const rv = km[3].trim();
+            idx++;
+            if (rv === ''){
+              if (idx < lines.length && lines[idx].indent > indent) obj[key] = parseBlock(lines[idx].indent);
+              else obj[key] = null;
+            } else obj[key] = scalar(rv);
+            while (idx < lines.length && lines[idx].indent > indent){
+              const cl = lines[idx];
+              const cm = cl.raw.match(/^(["']?)([^:]+?)\1\s*:\s*(.*)$/);
+              if (!cm){ idx++; break; }
+              const ck = stripQ(cm[2].trim());
+              const cr = cm[3].trim();
+              idx++;
+              if (cr === ''){
+                if (idx < lines.length && lines[idx].indent > cl.indent) obj[ck] = parseBlock(lines[idx].indent);
+                else obj[ck] = null;
+              } else obj[ck] = scalar(cr);
+            }
+            arr.push(obj);
+          } else { arr.push(scalar(rest)); idx++; }
+        }
+      }
+      return arr;
+    }
+    const obj = {};
+    while (idx < lines.length && lines[idx].indent === indent){
+      const l = lines[idx];
+      const m = l.raw.match(/^(["']?)([^:]+?)\1\s*:\s*(.*)$/);
+      if (!m){ idx++; continue; }
+      const key = stripQ(m[2].trim());
+      const rest = m[3].trim();
+      idx++;
+      if (rest === ''){
+        if (idx < lines.length && lines[idx].indent > indent) obj[key] = parseBlock(lines[idx].indent);
+        else obj[key] = null;
+      } else obj[key] = scalar(rest);
+    }
+    return obj;
+  }
+  if (!lines.length) return null;
+  const v = parseBlock(lines[0].indent);
+  if (v && typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length && lines.length === 1) return scalar(lines[0].raw);
+  return v;
+}
+$('btnYamlRun').addEventListener('click', () => {
+  const mode = ($('yamlMode').querySelector('.on') || {}).dataset.v || 'j2y';
+  const src = $('yamlIn').value;
+  const status = $('yamlStatus');
+  if (!src.trim()){ toast('请输入内容', 'err'); return; }
+  try {
+    if (mode === 'j2y'){
+      const r = parseJsonEx(src);
+      if (!r.ok) throw new Error('JSON 解析失败：' + r.error + '（第 ' + r.line + ' 行，第 ' + r.col + ' 列）');
+      $('yamlOut').value = jsonToYaml(r.value);
+    } else {
+      $('yamlOut').value = JSON.stringify(yamlToJson(src), null, 2);
+    }
+    status.textContent = '✓ 转换完成';
+    status.className = 'status ok';
+  } catch (e){ status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+});
+
+/* ================= CSV ↔ JSON ================= */
+function jsonToCsv(v, delim){
+  const { rows, cols } = flattenRows(v);
+  const cell = s => {
+    s = String(s === undefined ? '' : s);
+    return (s.includes(delim) || s.includes('"') || s.includes('\n') || s.includes('\r')) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  let out = cols.map(cell).join(delim) + '\n';
+  rows.forEach(r => { out += cols.map(c => cell(r[c])).join(delim) + '\n'; });
+  return out;
+}
+function parseCsv(text, delim){
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQ){
+      if (c === '"'){ if (text[i + 1] === '"'){ field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === delim){ row.push(field); field = ''; }
+      else if (c === '\n' || c === '\r'){
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); field = '';
+        if (row.some(s => s.trim() !== '')) rows.push(row);
+        row = [];
+      }
+      else field += c;
+    }
+  }
+  if (field !== '' || row.length){ row.push(field); if (row.some(s => s.trim() !== '')) rows.push(row); }
+  return rows;
+}
+function csvToJson(text, delim){
+  const rows = parseCsv(text, delim);
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(r => {
+    const o = {};
+    headers.forEach((h, i) => {
+      if (!h) return;
+      const val = r[i] === undefined ? '' : r[i].trim();
+      let v = val;
+      if (val === 'true') v = true;
+      else if (val === 'false') v = false;
+      else if (val === 'null') v = null;
+      else if (val === '') v = '';
+      else if (/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(val)) v = parseFloat(val);
+      o[h] = v;
+    });
+    return o;
+  });
+}
+$('btnCsvRun').addEventListener('click', () => {
+  const mode = ($('csvMode').querySelector('.on') || {}).dataset.v || 'j2c';
+  const delim = ($('csvDelim').querySelector('.on') || {}).dataset.v || ',';
+  const src = $('csvIn').value;
+  const status = $('csvStatus');
+  if (!src.trim()){ toast('请输入内容', 'err'); return; }
+  try {
+    if (mode === 'j2c'){
+      const r = parseJsonEx(src);
+      if (!r.ok) throw new Error('JSON 解析失败：' + r.error);
+      $('csvOut').value = jsonToCsv(r.value, delim);
+    } else {
+      $('csvOut').value = JSON.stringify(csvToJson(src, delim), null, 2);
+    }
+    status.textContent = '✓ 转换完成';
+    status.className = 'status ok';
+  } catch (e){ status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+});
+
+/* ================= JSON 转 Table ================= */
+$('btnTblRun').addEventListener('click', () => {
+  const src = $('tblIn').value;
+  const status = $('tblStatus');
+  if (!src.trim()){ toast('请输入 JSON', 'err'); return; }
+  const r = parseJsonEx(src);
+  if (!r.ok){ status.textContent = '✗ ' + r.error; status.className = 'status err'; return; }
+  const { rows, cols } = flattenRows(r.value);
+  const box = $('tblOut');
+  box.hidden = false;
+  box.innerHTML = tableHtml(rows, cols);
+  status.textContent = '✓ 共 ' + rows.length + ' 行 · ' + cols.length + ' 列';
+  status.className = 'status ok';
+});
+
+/* ================= JSON 转编程语言 ================= */
+const strPy = s => "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + "'";
+function genGeneric(lang, v, indent){
+  const L = LANGS[lang];
+  const pad = L.ind.repeat(indent);
+  if (v === null) return L.null;
+  if (typeof v === 'boolean') return v ? L.t : L.f;
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'string') return L.str(v);
+  if (Array.isArray(v)){
+    if (!v.length) return L.arrOpen + L.arrClose;
+    const items = v.map(x => genGeneric(lang, x, indent + 1));
+    return L.arrOpen + '\n' + items.map(x => pad + L.ind + x).join(',\n') + '\n' + pad + L.arrClose;
+  }
+  const ks = Object.keys(v);
+  if (!ks.length) return L.objOpen + L.objClose;
+  const items = ks.map(k => pad + L.ind + L.kv(k, genGeneric(lang, v[k], indent + 1)));
+  return L.objOpen + '\n' + items.join(',\n') + '\n' + pad + L.objClose;
+}
+const LANGS = {
+  python: { ind: '    ', arrOpen: '[', arrClose: ']', objOpen: '{', objClose: '}', null: 'None', t: 'True', f: 'False', str: strPy, kv: (k, v) => strPy(k) + ': ' + v },
+  javascript: { ind: '  ', arrOpen: '[', arrClose: ']', objOpen: '{', objClose: '}', null: 'null', t: 'true', f: 'false', str: s => JSON.stringify(s), kv: (k, v) => JSON.stringify(k) + ': ' + v },
+  php: { ind: '    ', arrOpen: '[', arrClose: ']', objOpen: '[', objClose: ']', null: 'null', t: 'true', f: 'false', str: strPy, kv: (k, v) => strPy(k) + ' => ' + v },
+  ruby: { ind: '  ', arrOpen: '[', arrClose: ']', objOpen: '{', objClose: '}', null: 'nil', t: 'true', f: 'false', str: strPy, kv: (k, v) => strPy(k) + ' => ' + v }
+};
+function ident(name, cap){
+  let s = String(name).replace(/[^\w$]/g, '_');
+  if (/^\d/.test(s)) s = '_' + s;
+  return cap ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+function genStructCode(lang, v, rootName){
+  const structs = [];
+  const used = new Set();
+  const typeName = base => { let i = 1, n = base; while (used.has(n)){ n = base + i; i++; } used.add(n); return n; };
+  function infer(x, name, isRoot){
+    if (x === null) return lang === 'go' ? 'interface{}' : (lang === 'cpp' ? 'void*' : 'Object');
+    if (typeof x === 'boolean') return 'bool';
+    if (typeof x === 'number'){
+      const int = Number.isInteger(x);
+      if (lang === 'go') return int ? 'int64' : 'float64';
+      if (lang === 'java' || lang === 'csharp' || lang === 'cpp') return int ? 'int' : 'double';
+      return int ? 'int' : 'double';
+    }
+    if (typeof x === 'string') return lang === 'go' ? 'string' : (lang === 'cpp' ? 'std::string' : (lang === 'csharp' ? 'string' : 'String'));
+    if (Array.isArray(x)){
+      const inner = x.length ? infer(x[0], name + 'Item') : (lang === 'go' ? 'interface{}' : (lang === 'cpp' ? 'void*' : 'Object'));
+      if (lang === 'go') return '[]' + inner;
+      if (lang === 'java' || lang === 'csharp') return 'List<' + inner + '>';
+      return 'std::vector<' + inner + '>';
+    }
+    const sname = isRoot ? name : typeName(name);
+    used.add(sname);
+    structs.push({ name: sname, fields: Object.keys(x).map(k => ({ k, t: infer(x[k], sname + ident(k, true)) })) });
+    return sname;
+  }
+  const rootType = infer(v, rootName, true);
+  if (!structs.length){
+    if (lang === 'go') return 'type ' + rootName + ' ' + rootType;
+    return '// ' + rootName + ' root type: ' + rootType;
+  }
+  let out = '';
+  if (lang === 'go'){
+    structs.forEach(st => {
+      out += 'type ' + st.name + ' struct {\n';
+      st.fields.forEach(f => { out += '  ' + ident(f.k, true) + ' ' + f.t + ' `json:"' + f.k + '"`\n'; });
+      out += '}\n\n';
+    });
+  } else if (lang === 'java'){
+    structs.forEach(st => {
+      out += 'class ' + st.name + ' {\n';
+      st.fields.forEach(f => { out += '  private ' + f.t + ' ' + ident(f.k, false) + ';\n'; });
+      st.fields.forEach(f => {
+        const id = ident(f.k, false), P = ident(f.k, true);
+        out += '\n  public ' + f.t + ' get' + P + '() { return ' + id + '; }\n';
+        out += '  public void set' + P + '(' + f.t + ' ' + id + ') { this.' + id + ' = ' + id + '; }\n';
+      });
+      out += '}\n\n';
+    });
+  } else if (lang === 'csharp'){
+    structs.forEach(st => {
+      out += 'public class ' + st.name + ' {\n';
+      st.fields.forEach(f => { out += '  public ' + f.t + ' ' + ident(f.k, true) + ' { get; set; }\n'; });
+      out += '}\n\n';
+    });
+  } else {
+    structs.forEach(st => {
+      out += 'struct ' + st.name + ' {\n';
+      st.fields.forEach(f => { out += '  ' + f.t + ' ' + ident(f.k, false) + ';\n'; });
+      out += '};\n\n';
+    });
+  }
+  return out.trim();
+}
+$('btnLangRun').addEventListener('click', () => {
+  const lang = $('langSel').value;
+  const src = $('langIn').value;
+  const status = $('langStatus');
+  if (!src.trim()){ toast('请输入 JSON', 'err'); return; }
+  const r = parseJsonEx(src);
+  if (!r.ok){ status.textContent = '✗ ' + r.error; status.className = 'status err'; return; }
+  try {
+    const code = (lang === 'go' || lang === 'java' || lang === 'csharp' || lang === 'cpp')
+      ? genStructCode(lang, r.value, 'Root')
+      : genGeneric(lang, r.value, 0);
+    $('langOut').value = code;
+    status.textContent = '✓ 已生成 ' + lang.toUpperCase() + ' 代码';
+    status.className = 'status ok';
+  } catch (e){ status.textContent = '✗ ' + e.message; status.className = 'status err'; }
+});
+
+/* ================= JSON 路径查询（独立页） ================= */
+$('btnPathRun2').addEventListener('click', () => {
+  const src = $('pathIn').value;
+  const expr = $('pathExpr2').value;
+  if (!src.trim()){ toast('请输入 JSON', 'err'); return; }
+  const r = parseJsonEx(src);
+  if (!r.ok){ toast('JSON 解析失败：' + r.error, 'err'); return; }
+  let res;
+  try { res = jsonPathQuery(r.value, expr); }
+  catch (e){ toast(e.message, 'err'); return; }
+  const box = $('pathResult2');
+  if (!res.length){ box.innerHTML = '<div class="pr"><span class="p">无匹配结果</span></div>'; $('pathCount2').textContent = '共 0 条'; return; }
+  box.innerHTML = res.map(r2 =>
+    '<div class="pr"><span class="p">' + esc(r2.path) + '</span><span class="pv">' + esc(typeof r2.value === 'string' ? '"' + r2.value + '"' : JSON.stringify(r2.value)) + '</span></div>'
+  ).join('');
+  $('pathCount2').textContent = '共 ' + res.length + ' 条匹配';
+});
+
+/* ================= JSON 转 SQL ================= */
+function flattenTyped(x, prefix, out){
+  if (Array.isArray(x)){ out[prefix || 'value'] = x; return; }
+  if (x && typeof x === 'object'){
+    const ks = Object.keys(x);
+    if (!ks.length){ out[prefix || 'value'] = {}; return; }
+    ks.forEach(k => flattenTyped(x[k], prefix ? prefix + '.' + k : k, out));
+  } else out[prefix || 'value'] = x;
+}
+function jsonToSql(v, table){
+  const rows = Array.isArray(v) ? v : [v];
+  const flatRows = rows.map(r => { const o = {}; flattenTyped(r, '', o); return o; });
+  const cols = [];
+  flatRows.forEach(r => Object.keys(r).forEach(k => { if (!cols.includes(k)) cols.push(k); }));
+  const typeOf = c => {
+    let maxLen = 0, allInt = true;
+    for (const r of flatRows){
+      const x = r[c];
+      if (x === undefined) continue;
+      if (typeof x === 'number'){ if (!Number.isInteger(x)) allInt = false; }
+      else if (typeof x === 'boolean') return 'BOOLEAN';
+      else if (typeof x === 'object') return 'TEXT';
+      else { allInt = false; maxLen = Math.max(maxLen, String(x).length); }
+    }
+    const first = flatRows.find(r => r[c] !== undefined);
+    if (typeof first[c] === 'number') return allInt ? 'INT' : 'DOUBLE';
+    return maxLen > 255 ? 'TEXT' : 'VARCHAR(' + Math.max(32, maxLen || 32) + ')';
+  };
+  const qq = s => "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n') + "'";
+  let sql = 'CREATE TABLE IF NOT EXISTS `' + table + '` (\n';
+  sql += cols.map(c => '  `' + c + '` ' + typeOf(c)).join(',\n') + '\n);\n\n';
+  flatRows.forEach(r => {
+    const vs = cols.map(c => {
+      const x = r[c];
+      if (x === undefined || x === null) return 'NULL';
+      if (typeof x === 'boolean') return x ? '1' : '0';
+      if (typeof x === 'number') return String(x);
+      if (typeof x === 'object') return qq(JSON.stringify(x));
+      return qq(x);
+    });
+    sql += 'INSERT INTO `' + table + '` (`' + cols.join('`, `') + '`) VALUES (' + vs.join(', ') + ');\n';
+  });
+  return sql;
+}
+$('btnSqlRun').addEventListener('click', () => {
+  const src = $('sqlIn').value;
+  const table = $('sqlTable').value.trim() || 't_import';
+  const status = $('sqlStatus');
+  if (!src.trim()){ toast('请输入 JSON', 'err'); return; }
+  const r = parseJsonEx(src);
+  if (!r.ok){ status.textContent = '✗ ' + r.error; status.className = 'status err'; return; }
+  $('sqlOut').value = jsonToSql(r.value, table);
+  status.textContent = '✓ 已生成 SQL';
+  status.className = 'status ok';
+});
+
+/* ================= JSON 排序 ================= */
+$('btnSortRun').addEventListener('click', () => {
+  const src = $('sortIn').value;
+  const desc = ($('sortMode').querySelector('.on') || {}).dataset.v === 'desc';
+  const status = $('sortStatus');
+  if (!src.trim()){ toast('请输入 JSON', 'err'); return; }
+  const r = parseJsonEx(src);
+  if (!r.ok){ status.textContent = '✗ ' + r.error; status.className = 'status err'; return; }
+  $('sortOut').value = JSON.stringify(sortJSON(r.value, desc), null, 2);
+  status.textContent = '✓ 排序完成（' + (desc ? '降序' : '升序') + '）';
+  status.className = 'status ok';
+});
+
+/* ================= JSON 树形查看（独立页） ================= */
+$('btnTreeRun').addEventListener('click', () => {
+  const src = $('treeIn').value;
+  const status = $('treeStatus');
+  if (!src.trim()){ toast('请输入 JSON', 'err'); return; }
+  const r = parseJsonEx(src);
+  if (!r.ok){ status.textContent = '✗ ' + r.error; status.className = 'status err'; return; }
+  const box = $('treeOut2');
+  box.hidden = false;
+  box.innerHTML = treeHtml(r.value);
+  status.textContent = '✓ 已生成（点击箭头展开/收起）';
+  status.className = 'status ok';
+});
+$('btnTreeExpand').addEventListener('click', () => { const b = $('treeOut2'); if (!b.hidden) treeSetAll(b, true); });
+$('btnTreeCollapse').addEventListener('click', () => { const b = $('treeOut2'); if (!b.hidden) treeSetAll(b, false); });
+/* ================= URL 编码 / 解码 ================= */
+RUN.url = () => {
+  const mode = ($('urlMode').querySelector('.on') || {}).dataset.v;
+  const src = $('urlIn').value;
+  try { $('urlOut').value = mode === 'encode' ? encodeURIComponent(src) : decodeURIComponent(src); }
+  catch (e){ $('urlOut').value = ''; toast('解码失败：' + e.message, 'err'); }
+};
+
+/* ================= Base64 ================= */
+RUN.b64 = () => {
+  const mode = ($('b64Mode').querySelector('.on') || {}).dataset.v;
+  const src = $('b64In').value;
+  try {
+    if (mode === 'encode'){
+      const bytes = new TextEncoder().encode(src);
+      let s = '';
+      bytes.forEach(b => s += String.fromCharCode(b));
+      $('b64Out').value = btoa(s);
+    } else {
+      const bin = atob(src.trim());
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      $('b64Out').value = new TextDecoder('utf-8').decode(bytes);
+    }
+  } catch (e){ $('b64Out').value = ''; toast('处理失败：' + e.message, 'err'); }
+};
+
+/* ================= Unicode 转义 ================= */
+RUN.unicode = () => {
+  const mode = ($('uniMode').querySelector('.on') || {}).dataset.v;
+  const src = $('uniIn').value;
+  if (mode === 'encode'){
+    let out = '';
+    for (const ch of src){
+      const cp = ch.codePointAt(0);
+      if (cp > 0xFFFF){
+        const hi = Math.floor((cp - 0x10000) / 0x400) + 0xD800;
+        const lo = ((cp - 0x10000) % 0x400) + 0xDC00;
+        out += '\\u' + hi.toString(16).padStart(4, '0') + '\\u' + lo.toString(16).padStart(4, '0');
+      } else out += '\\u' + cp.toString(16).padStart(4, '0');
+    }
+    $('uniOut').value = out;
+  } else $('uniOut').value = jsonUnescapeText(src);
+};
+
+/* ================= HTML 实体 ================= */
+RUN.htmlent = () => {
+  const mode = ($('entMode').querySelector('.on') || {}).dataset.v;
+  const src = $('entIn').value;
+  if (mode === 'encode'){ $('entOut').value = esc(src); }
+  else {
+    const ta = document.createElement('textarea');
+    ta.innerHTML = src;
+    $('entOut').value = ta.value;
+  }
+};
+
+/* ================= 字数统计（实时） ================= */
+function updateCount(){
+  const s = $('countIn').value;
+  const chars = [...s].length;
+  const noSpace = s.replace(/\s/g, '').length;
+  const han = (s.match(/[\u4e00-\u9fff]/g) || []).length;
+  const words = (s.match(/[A-Za-z0-9_'-]+/g) || []).length;
+  const lines = s ? s.split(/\r?\n/).length : 0;
+  const paras = s ? s.split(/\n\s*\n/).filter(p => p.trim()).length : 0;
+  $('countOut').innerHTML = statCards([
+    { v: fmtInt(chars), k: '字符数（含空格）' },
+    { v: fmtInt(noSpace), k: '字符数（不含空格）' },
+    { v: fmtInt(han), k: '汉字数' },
+    { v: fmtInt(words), k: '英文单词数' },
+    { v: fmtInt(lines), k: '行数' },
+    { v: fmtInt(paras), k: '段落数' },
+    { v: fmtInt(utf8Bytes(s)), k: 'UTF-8 字节' }
+  ]);
+}
+$('countIn').addEventListener('input', updateCount);
+
+/* ================= 大小写转换 ================= */
+RUN.case = () => {
+  const mode = ($('caseMode').querySelector('.on') || {}).dataset.v;
+  const s = $('caseIn').value;
+  if (mode === 'upper') $('caseOut').value = s.toUpperCase();
+  else if (mode === 'lower') $('caseOut').value = s.toLowerCase();
+  else $('caseOut').value = s.replace(/(^|[^A-Za-z0-9])([a-z])/g, (m, p, c) => p + c.toUpperCase());
+};
+
+/* ================= 字符串反转 ================= */
+RUN.reverse = () => {
+  const mode = ($('revMode').querySelector('.on') || {}).dataset.v;
+  const s = $('revIn').value;
+  $('revOut').value = mode === 'char' ? [...s].reverse().join('') : s.split(/\s+/).reverse().join(' ');
+};
+
+/* ================= 去除空白 ================= */
+RUN.trim = () => {
+  const mode = ($('trimMode').querySelector('.on') || {}).dataset.v;
+  const s = $('trimIn').value;
+  if (mode === 'all') $('trimOut').value = s.replace(/\s+/g, '');
+  else if (mode === 'edge') $('trimOut').value = s.trim();
+  else if (mode === 'merge') $('trimOut').value = s.replace(/[ \t]+/g, ' ').trim();
+  else $('trimOut').value = s.split(/\r?\n/).filter(l => l.trim() !== '').join('\n');
+};
+
+/* ================= 字符串长度（实时） ================= */
+function updateLen(){
+  const s = $('lenIn').value;
+  const chars = [...s].length;
+  const noSpace = s.replace(/\s/g, '').length;
+  const lines = s ? s.split(/\r?\n/).length : 0;
+  const maxLine = s.split(/\r?\n/).reduce((m, l) => Math.max(m, [...l].length), 0);
+  $('lenOut').innerHTML = statCards([
+    { v: fmtInt(chars), k: '字符数' },
+    { v: fmtInt(noSpace), k: '不含空格字符' },
+    { v: fmtInt(utf8Bytes(s)), k: 'UTF-8 字节' },
+    { v: fmtInt(lines), k: '行数' },
+    { v: fmtInt(maxLine), k: '最长行字符' }
+  ]);
+}
+$('lenIn').addEventListener('input', updateLen);
+
+/* ================= MD5 ================= */
+const MD5 = (function(){
+  function toBytes(str){
+    const bytes = [];
+    for (let i = 0; i < str.length; i++){
+      let code = str.charCodeAt(i);
+      if (code > 0x7F){
+        if (code >= 0xD800 && code <= 0xDBFF && i + 1 < str.length){
+          const code2 = str.charCodeAt(i + 1);
+          if (code2 >= 0xDC00 && code2 <= 0xDFFF){ code = 0x10000 + ((code - 0xD800) << 10) + (code2 - 0xDC00); i++; }
+        }
+        if (code <= 0x7FF) bytes.push((code >> 6) | 0xC0, (code & 0x3F) | 0x80);
+        else if (code <= 0xFFFF) bytes.push((code >> 12) | 0xE0, ((code >> 6) & 0x3F) | 0x80, (code & 0x3F) | 0x80);
+        else bytes.push((code >> 18) | 0xF0, ((code >> 12) & 0x3F) | 0x80, ((code >> 6) & 0x3F) | 0x80, (code & 0x3F) | 0x80);
+      } else bytes.push(code);
+    }
+    return bytes;
+  }
+  const S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22, 5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20, 4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23, 6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  const K = [];
+  for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) >>> 0;
+  function md5(str){
+    const bytes = toBytes(str);
+    const bitLen = bytes.length * 8;
+    const p = bytes.slice();
+    p.push(0x80);
+    while (p.length % 64 !== 56) p.push(0);
+    { const bl = BigInt(bitLen); for (let i = 0; i < 8; i++) p.push(Number((bl >> BigInt(i * 8)) & 0xFFn)); }
+    let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+    for (let off = 0; off < p.length; off += 64){
+      const M = [];
+      for (let i = 0; i < 16; i++) M[i] = (p[off + i*4]) | (p[off + i*4+1] << 8) | (p[off + i*4+2] << 16) | (p[off + i*4+3] << 24);
+      let A = a0, B = b0, C = c0, D = d0;
+      for (let i = 0; i < 64; i++){
+        let F, g;
+        if (i < 16){ F = (B & C) | (~B & D); g = i; }
+        else if (i < 32){ F = (D & B) | (~D & C); g = (5*i + 1) % 16; }
+        else if (i < 48){ F = B ^ C ^ D; g = (3*i + 5) % 16; }
+        else { F = C ^ (B | ~D); g = (7*i) % 16; }
+        F = (F + A + K[i] + M[g]) >>> 0;
+        A = D; D = C; C = B;
+        B = (B + ((F << S[i]) | (F >>> (32 - S[i])))) >>> 0;
+      }
+      a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+    }
+    const rev = x => (((x & 0xFF) << 24) | ((x & 0xFF00) << 8) | ((x >>> 8) & 0xFF00) | ((x >>> 24) & 0xFF)) >>> 0;
+    const hex = x => ('00000000' + x.toString(16)).slice(-8);
+    return hex(rev(a0)) + hex(rev(b0)) + hex(rev(c0)) + hex(rev(d0));
+  }
+  return md5;
+})();
+/* ================= SHA-1 ================= */
+function sha1(str){
+  const bytes = [];
+  for (let i = 0; i < str.length; i++){
+    let code = str.charCodeAt(i);
+    if (code > 0x7F){
+      if (code >= 0xD800 && code <= 0xDBFF && i + 1 < str.length){
+        const code2 = str.charCodeAt(i + 1);
+        if (code2 >= 0xDC00 && code2 <= 0xDFFF){ code = 0x10000 + ((code - 0xD800) << 10) + (code2 - 0xDC00); i++; }
+      }
+      if (code <= 0x7FF) bytes.push((code >> 6) | 0xC0, (code & 0x3F) | 0x80);
+      else if (code <= 0xFFFF) bytes.push((code >> 12) | 0xE0, ((code >> 6) & 0x3F) | 0x80, (code & 0x3F) | 0x80);
+      else bytes.push((code >> 18) | 0xF0, ((code >> 12) & 0x3F) | 0x80, ((code >> 6) & 0x3F) | 0x80, (code & 0x3F) | 0x80);
+    } else bytes.push(code);
+  }
+  const bitLen = bytes.length * 8;
+  const p = bytes.slice();
+  p.push(0x80);
+  while (p.length % 64 !== 56) p.push(0);
+  { const bl = BigInt(bitLen); for (let i = 7; i >= 0; i--) p.push(Number((bl >> BigInt(i * 8)) & 0xFFn)); }
+  const rotl = (x, c) => (x << c) | (x >>> (32 - c));
+  let h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE, h3 = 0x10325476, h4 = 0xC3D2E1F0;
+  for (let off = 0; off < p.length; off += 64){
+    const w = [];
+    for (let i = 0; i < 16; i++) w[i] = (p[off + i*4] << 24) | (p[off + i*4+1] << 16) | (p[off + i*4+2] << 8) | p[off + i*4+3];
+    for (let i = 16; i < 80; i++) w[i] = rotl(w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16], 1);
+    let a = h0, b = h1, c = h2, d = h3, e = h4;
+    for (let i = 0; i < 80; i++){
+      let f, k;
+      if (i < 20){ f = (b & c) | ((~b) & d); k = 0x5A827999; }
+      else if (i < 40){ f = b ^ c ^ d; k = 0x6ED9EBA1; }
+      else if (i < 60){ f = (b & c) | (b & d) | (c & d); k = 0x8F1BBCDC; }
+      else { f = b ^ c ^ d; k = 0xCA62C1D6; }
+      const t = (rotl(a, 5) + f + e + k + w[i]) >>> 0;
+      e = d; d = c; c = rotl(b, 30); b = a; a = t;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+  }
+  const hex = x => ('00000000' + x.toString(16)).slice(-8);
+  return hex(h0) + hex(h1) + hex(h2) + hex(h3) + hex(h4);
+}
+/* ================= SHA-256 ================= */
+const SHA256 = (function(){
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  function toBytes(str){
+    const bytes = [];
+    for (let i = 0; i < str.length; i++){
+      let code = str.charCodeAt(i);
+      if (code > 0x7F){
+        if (code >= 0xD800 && code <= 0xDBFF && i + 1 < str.length){
+          const code2 = str.charCodeAt(i + 1);
+          if (code2 >= 0xDC00 && code2 <= 0xDFFF){ code = 0x10000 + ((code - 0xD800) << 10) + (code2 - 0xDC00); i++; }
+        }
+        if (code <= 0x7FF) bytes.push((code >> 6) | 0xC0, (code & 0x3F) | 0x80);
+        else if (code <= 0xFFFF) bytes.push((code >> 12) | 0xE0, ((code >> 6) & 0x3F) | 0x80, (code & 0x3F) | 0x80);
+        else bytes.push((code >> 18) | 0xF0, ((code >> 12) & 0x3F) | 0x80, ((code >> 6) & 0x3F) | 0x80, (code & 0x3F) | 0x80);
+      } else bytes.push(code);
+    }
+    return bytes;
+  }
+  return function sha256(str){
+    const bytes = toBytes(str);
+    const bitLen = bytes.length * 8;
+    const p = bytes.slice();
+    p.push(0x80);
+    while (p.length % 64 !== 56) p.push(0);
+    { const bl = BigInt(bitLen); for (let i = 7; i >= 0; i--) p.push(Number((bl >> BigInt(i * 8)) & 0xFFn)); }
+    const h = H.slice();
+    for (let off = 0; off < p.length; off += 64){
+      const w = new Array(64);
+      for (let i = 0; i < 16; i++) w[i] = (p[off + i*4] << 24) | (p[off + i*4+1] << 16) | (p[off + i*4+2] << 8) | p[off + i*4+3];
+      for (let i = 16; i < 64; i++){
+        const s0 = rotr(w[i-15], 7) ^ rotr(w[i-15], 18) ^ (w[i-15] >>> 3);
+        const s1 = rotr(w[i-2], 17) ^ rotr(w[i-2], 19) ^ (w[i-2] >>> 10);
+        w[i] = (w[i-16] + s0 + w[i-7] + s1) >>> 0;
+      }
+      let a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+      for (let i = 0; i < 64; i++){
+        const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        const ch = (e & f) ^ ((~e) & g);
+        const t1 = (hh + S1 + ch + K[i] + w[i]) >>> 0;
+        const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        const maj = (a & b) ^ (a & c) ^ (b & c);
+        const t2 = (S0 + maj) >>> 0;
+        hh = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+      }
+      h[0] = (h[0] + a) >>> 0; h[1] = (h[1] + b) >>> 0; h[2] = (h[2] + c) >>> 0; h[3] = (h[3] + d) >>> 0;
+      h[4] = (h[4] + e) >>> 0; h[5] = (h[5] + f) >>> 0; h[6] = (h[6] + g) >>> 0; h[7] = (h[7] + hh) >>> 0;
+    }
+    const hex = x => ('00000000' + x.toString(16)).slice(-8);
+    return h.map(hex).join('');
+  };
+})();
+/* ================= SHA-512 ================= */
+const SHA512 = (function(){
+  const MASK = (1n << 64n) - 1n;
+  const K = [0x428a2f98d728ae22n,0x7137449123ef65cdn,0xb5c0fbcfec4d3b2fn,0xe9b5dba58189dbbcn,0x3956c25bf348b538n,0x59f111f1b605d019n,0x923f82a4af194f9bn,0xab1c5ed5da6d8118n,0xd807aa98a3030242n,0x12835b0145706fben,0x243185be4ee4b28cn,0x550c7dc3d5ffb4e2n,0x72be5d74f27b896fn,0x80deb1fe3b1696b1n,0x9bdc06a725c71235n,0xc19bf174cf692694n,0xe49b69c19ef14ad2n,0xefbe4786384f25e3n,0x0fc19dc68b8cd5b5n,0x240ca1cc77ac9c65n,0x2de92c6f592b0275n,0x4a7484aa6ea6e483n,0x5cb0a9dcbd41fbd4n,0x76f988da831153b5n,0x983e5152ee66dfabn,0xa831c66d2db43210n,0xb00327c898fb213fn,0xbf597fc7beef0ee4n,0xc6e00bf33da88fc2n,0xd5a79147930aa725n,0x06ca6351e003826fn,0x142929670a0e6e70n,0x27b70a8546d22ffcn,0x2e1b21385c26c926n,0x4d2c6dfc5ac42aedn,0x53380d139d95b3dfn,0x650a73548baf63den,0x766a0abb3c77b2a8n,0x81c2c92e47edaee6n,0x92722c851482353bn,0xa2bfe8a14cf10364n,0xa81a664bbc423001n,0xc24b8b70d0f89791n,0xc76c51a30654be30n,0xd192e819d6ef5218n,0xd69906245565a910n,0xf40e35855771202an,0x106aa07032bbd1b8n,0x19a4c116b8d2d0c8n,0x1e376c085141ab53n,0x2748774cdf8eeb99n,0x34b0bcb5e19b48a8n,0x391c0cb3c5c95a63n,0x4ed8aa4ae3418acbn,0x5b9cca4f7763e373n,0x682e6ff3d6b2b8a3n,0x748f82ee5defb2fcn,0x78a5636f43172f60n,0x84c87814a1f0ab72n,0x8cc702081a6439ecn,0x90befffa23631e28n,0xa4506cebde82bde9n,0xbef9a3f7b2c67915n,0xc67178f2e372532bn,0xca273eceea26619cn,0xd186b8c721c0c207n,0xeada7dd6cde0eb1en,0xf57d4f7fee6ed178n,0x06f067aa72176fban,0x0a637dc5a2c898a6n,0x113f9804bef90daen,0x1b710b35131c471bn,0x28db77f523047d84n,0x32caab7b40c72493n,0x3c9ebe0a15c9bebcn,0x431d67c49c100d4cn,0x4cc5d4becb3e42b6n,0x597f299cfc657e2an,0x5fcb6fab3ad6faecn,0x6c44198c4a475817n];
+  const H = [0x6a09e667f3bcc908n,0xbb67ae8584caa73bn,0x3c6ef372fe94f82bn,0xa54ff53a5f1d36f1n,0x510e527fade682d1n,0x9b05688c2b3e6c1fn,0x1f83d9abfb41bd6bn,0x5be0cd19137e2179n];
+  const rotr = (x, n) => ((x >> n) | (x << (64n - n))) & MASK;
+  function toBytes(str){
+    const bytes = [];
+    for (let i = 0; i < str.length; i++){
+      let code = str.charCodeAt(i);
+      if (code > 0x7F){
+        if (code >= 0xD800 && code <= 0xDBFF && i + 1 < str.length){
+          const code2 = str.charCodeAt(i + 1);
+          if (code2 >= 0xDC00 && code2 <= 0xDFFF){ code = 0x10000 + ((code - 0xD800) << 10) + (code2 - 0xDC00); i++; }
+        }
+        if (code <= 0x7FF) bytes.push((code >> 6) | 0xC0, (code & 0x3F) | 0x80);
+        else if (code <= 0xFFFF) bytes.push((code >> 12) | 0xE0, ((code >> 6) & 0x3F) | 0x80, (code & 0x3F) | 0x80);
+        else bytes.push((code >> 18) | 0xF0, ((code >> 12) & 0x3F) | 0x80, ((code >> 6) & 0x3F) | 0x80, (code & 0x3F) | 0x80);
+      } else bytes.push(code);
+    }
+    return bytes;
+  }
+  return function sha512(str){
+    const bytes = toBytes(str);
+    const bitLen = BigInt(bytes.length) * 8n;
+    const p = bytes.slice();
+    p.push(0x80);
+    while (p.length % 128 !== 112) p.push(0);
+    for (let i = 15; i >= 0; i--) p.push(Number((bitLen >> BigInt(i * 8)) & 0xFFn));
+    const h = H.slice();
+    for (let off = 0; off < p.length; off += 128){
+      const w = new Array(80);
+      for (let i = 0; i < 16; i++){
+        let word = 0n;
+        for (let j = 0; j < 8; j++) word = (word << 8n) | BigInt(p[off + i*8 + j]);
+        w[i] = word;
+      }
+      for (let i = 16; i < 80; i++){
+        const s0 = rotr(w[i-15], 1n) ^ rotr(w[i-15], 8n) ^ (w[i-15] >> 7n);
+        const s1 = rotr(w[i-2], 19n) ^ rotr(w[i-2], 61n) ^ (w[i-2] >> 6n);
+        w[i] = (w[i-16] + s0 + w[i-7] + s1) & MASK;
+      }
+      let a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+      for (let i = 0; i < 80; i++){
+        const S1 = rotr(e, 14n) ^ rotr(e, 18n) ^ rotr(e, 41n);
+        const ch = (e & f) ^ ((~e) & g);
+        const t1 = (hh + S1 + ch + K[i] + w[i]) & MASK;
+        const S0 = rotr(a, 28n) ^ rotr(a, 34n) ^ rotr(a, 39n);
+        const maj = (a & b) ^ (a & c) ^ (b & c);
+        const t2 = (S0 + maj) & MASK;
+        hh = g; g = f; f = e; e = (d + t1) & MASK; d = c; c = b; b = a; a = (t1 + t2) & MASK;
+      }
+      h[0] = (h[0] + a) & MASK; h[1] = (h[1] + b) & MASK; h[2] = (h[2] + c) & MASK; h[3] = (h[3] + d) & MASK;
+      h[4] = (h[4] + e) & MASK; h[5] = (h[5] + f) & MASK; h[6] = (h[6] + g) & MASK; h[7] = (h[7] + hh) & MASK;
+    }
+    return h.map(x => x.toString(16).padStart(16, '0')).join('');
+  };
+})();
+RUN.hash = () => {
+  const src = $('hashIn').value;
+  if (!src.trim()){ toast('请输入文本', 'err'); return; }
+  const t0 = performance.now();
+  const list = [
+    ['MD5', MD5(src)],
+    ['SHA-1', sha1(src)],
+    ['SHA-256', SHA256(src)],
+    ['SHA-512', SHA512(src)]
+  ];
+  $('hashOut').hidden = false;
+  $('hashOut').innerHTML = list.map(([k, v]) => '<div class="kv"><div class="kk">' + k + '</div><div class="kv-v">' + v + '</div></div>').join('');
+  $('hashStatus').textContent = '✓ 计算完成 · ' + fmtMs(t0);
+  $('hashStatus').className = 'status ok';
+  window.__hashResults = list.map(([k, v]) => k + ': ' + v).join('\n');
+};
+$('btnHashCopy').addEventListener('click', () => { if (window.__hashResults) copyText(window.__hashResults, '哈希结果'); });
+
+/* ================= 时间戳转换 ================= */
+function relTime(ms){
+  const s = Math.abs(ms) / 1000, dir = ms < 0 ? '前' : '后';
+  if (s < 10) return '刚刚';
+  if (s < 60) return Math.round(s) + ' 秒' + dir;
+  const m = s / 60; if (m < 60) return Math.round(m) + ' 分钟' + dir;
+  const h = m / 60; if (h < 24) return Math.round(h) + ' 小时' + dir;
+  const d = h / 24; if (d < 30) return Math.round(d) + ' 天' + dir;
+  return Math.round(d / 30) + ' 个月' + dir;
+}
+function kvHtml(list){
+  return list.map(([k, v]) => '<div class="kv"><div class="kk">' + esc(k) + '</div><div class="kv-v">' + esc(String(v)) + '</div></div>').join('');
+}
+$('btnTsNow').addEventListener('click', () => {
+  $('tsIn').value = Math.floor(Date.now() / 1000);
+  $('btnTsRun').click();
+});
+$('btnTsRun').addEventListener('click', () => {
+  const raw = $('tsIn').value.trim();
+  if (!raw || !/^-?\d+$/.test(raw)){ toast('请输入有效的时间戳', 'err'); return; }
+  const n = parseFloat(raw);
+  const ms = Math.abs(n) < 1e12 ? n * 1000 : n;
+  const d = new Date(ms);
+  if (isNaN(d.getTime())){ toast('无效的时间戳', 'err'); return; }
+  $('tsOut').hidden = false;
+  $('tsOut').innerHTML = kvHtml([
+    ['输入', raw + (Math.abs(n) < 1e12 ? '（秒）' : '（毫秒）')],
+    ['本地时间', d.toLocaleString('zh-CN', { hour12: false })],
+    ['UTC 时间', d.toUTCString()],
+    ['ISO 8601', d.toISOString()],
+    ['星期', '星期' + '日一二三四五六'[d.getDay()]],
+    ['相对当前', relTime(d.getTime() - Date.now())]
+  ]);
+  $('tsStatus').textContent = '';
+});
+$('btnDtRun').addEventListener('click', () => {
+  const v = $('dtIn').value;
+  if (!v){ toast('请选择日期时间', 'err'); return; }
+  const d = new Date(v);
+  if (isNaN(d.getTime())){ toast('无效的日期时间', 'err'); return; }
+  $('dtOut').hidden = false;
+  $('dtOut').innerHTML = kvHtml([
+    ['秒级时间戳', Math.floor(d.getTime() / 1000)],
+    ['毫秒级时间戳', d.getTime()],
+    ['UTC', d.toISOString()]
+  ]);
+  $('dtStatus').textContent = '';
+});
+
+/* ================= 进制转换 ================= */
+RUN.radix = () => {
+  const status = $('radixStatus');
+  const raw = $('radixIn').value.trim();
+  const from = parseInt($('radixFrom').value, 10);
+  const fail = msg => {
+    $('radixOut').hidden = true; $('radixOut').innerHTML = '';
+    status.textContent = '✗ ' + msg; status.className = 'status err';
+    toast(msg, 'err');
+  };
+  if (!raw){ fail('请输入数值'); return; }
+  const neg = raw.startsWith('-');
+  const body = raw.replace(/^[-+]/, '').toUpperCase();
+  if (!body){ fail('请输入数值'); return; }
+  let val = 0;
+  for (const ch of body){
+    const digit = ch <= '9' ? ch.charCodeAt(0) - 48 : ch.charCodeAt(0) - 55;
+    if (digit >= from || digit < 0){ fail('数值与所选进制不符'); return; }
+    val = val * from + digit;
+  }
+  if (val > Number.MAX_SAFE_INTEGER){ fail('数值过大（超出安全整数范围）'); return; }
+  const abs = Math.abs(val);
+  $('radixOut').hidden = false;
+  $('radixOut').innerHTML = kvHtml([
+    ['二进制', (neg ? '-' : '') + abs.toString(2)],
+    ['八进制', (neg ? '-' : '') + abs.toString(8)],
+    ['十进制', (neg ? '-' : '') + abs.toString(10)],
+    ['十六进制', (neg ? '-' : '') + abs.toString(16).toUpperCase()],
+    ['36 进制', (neg ? '-' : '') + abs.toString(36)]
+  ]);
+  status.textContent = ''; status.className = 'status';
+};
+
+/* ================= 随机数生成 ================= */
+RUN.rand = () => {
+  const min = parseFloat($('randMin').value), max = parseFloat($('randMax').value);
+  const count = Math.max(1, Math.min(100, parseInt($('randCount').value, 10) || 1));
+  const intOnly = $('randInt').checked;
+  if (isNaN(min) || isNaN(max) || min > max){ toast('请输入正确的范围', 'err'); return; }
+  const lo = intOnly ? Math.ceil(min) : min;
+  const hi = intOnly ? Math.floor(max) : max;
+  if (lo > hi){ toast('该范围内没有可生成的整数', 'err'); return; }
+  const out = [];
+  for (let i = 0; i < count; i++){
+    if (intOnly) out.push(Math.floor(Math.random() * (hi - lo + 1)) + lo);
+    else out.push(String(parseFloat((Math.random() * (hi - lo) + lo).toFixed(2))));
+  }
+  $('randOut').value = out.join('\n');
+};
+
+/* ================= UUID v4 ================= */
+RUN.uuid = () => {
+  const count = Math.max(1, Math.min(500, parseInt($('uuidCount').value, 10) || 1));
+  const out = [];
+  for (let i = 0; i < count; i++){
+    if (window.crypto && crypto.getRandomValues){
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+      const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+      out.push(h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20));
+    } else {
+      out.push('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      }));
+    }
+  }
+  $('uuidOut').value = out.join('\n');
+};
+
+/* ================= 随机密码 ================= */
+function secureRandInt(max){
+  if (window.crypto && crypto.getRandomValues){
+    const buf = new Uint32Array(1);
+    const limit = Math.floor(0x100000000 / max) * max;
+    let x;
+    do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+    return x % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+RUN.pass = () => {
+  const len = Math.max(4, Math.min(64, parseInt($('passLen').value, 10) || 12));
+  const count = Math.max(1, Math.min(50, parseInt($('passCount').value, 10) || 1));
+  const sets = [];
+  if ($('passUpper').checked) sets.push('ABCDEFGHJKLMNPQRSTUVWXYZ');
+  if ($('passLower').checked) sets.push('abcdefghijkmnopqrstuvwxyz');
+  if ($('passDigit').checked) sets.push('23456789');
+  if ($('passSym').checked) sets.push('!@#$%^&*()-_=+[]{};:,.<>?');
+  if (!sets.length){ toast('请至少选择一种字符集', 'err'); return; }
+  const all = sets.join('');
+  const one = () => {
+    let p = '';
+    sets.forEach(s => p += s[secureRandInt(s.length)]);
+    for (let i = p.length; i < len; i++) p += all[secureRandInt(all.length)];
+    const chars = p.split('');
+    for (let i = chars.length - 1; i > 0; i--){
+      const j = secureRandInt(i + 1);
+      const tmp = chars[i]; chars[i] = chars[j]; chars[j] = tmp;
+    }
+    return chars.join('');
+  };
+  const strength = p => {
+    let score = 0;
+    if (p.length >= 12) score += 2; else if (p.length >= 8) score += 1;
+    if (/[a-z]/.test(p) && /[A-Z]/.test(p)) score += 1;
+    if (/\d/.test(p)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(p)) score += 1;
+    return score >= 5 ? '强' : score >= 3 ? '中' : '弱';
+  };
+  const out = [];
+  for (let i = 0; i < count; i++){ const p = one(); out.push(p + '（' + strength(p) + '）'); }
+  $('passOut').value = out.join('\n');
+};
+
+/* ================= 正则表达式测试 ================= */
+RUN.regex = () => {
+  const pat = $('regexPat').value;
+  const text = $('regexText').value;
+  const status = $('regexStatus');
+  if (!pat){ toast('请输入正则表达式', 'err'); return; }
+  const flags = $$('button', $('regexFlag')).filter(b => b.classList.contains('on')).map(b => b.dataset.v).join('');
+  let re;
+  try { re = new RegExp(pat, flags.indexOf('g') >= 0 ? flags : flags + 'g'); }
+  catch (e){
+    status.textContent = '✗ 正则语法错误：' + e.message;
+    status.className = 'status err';
+    $('regexOut').hidden = true; $('regexOut').innerHTML = '';
+    toast('正则语法错误：' + e.message, 'err');
+    return;
+  }
+  const all = []; let m;
+  while ((m = re.exec(text)) !== null){
+    all.push({ text: m[0], index: m.index });
+    if (m.index === re.lastIndex) re.lastIndex++;
+    if (all.length >= 500) break;
+  }
+  if (!all.length){ status.textContent = '未匹配到任何结果'; status.className = 'status'; $('regexOut').hidden = true; $('regexOut').innerHTML = ''; return; }
+  let html = '', last = 0;
+  all.forEach(r => {
+    html += esc(text.slice(last, r.index)) + '<mark>' + esc(r.text) + '</mark>';
+    last = r.index + r.text.length;
+  });
+  html += esc(text.slice(last));
+  $('regexOut').hidden = false;
+  $('regexOut').innerHTML = html;
+  status.textContent = '共 ' + all.length + ' 处匹配' + (all.length >= 500 ? '（已截断至 500 处）' : '');
+  status.className = 'status ok';
+};
+
+/* ================= 图片转 Base64 ================= */
+const imgState = {};
+$('imgDrop').addEventListener('click', e => {
+  if (e.target === $('imgFile')) return;
+  $('imgFile').click();
+});
+$('imgDrop').addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); $('imgDrop').style.borderColor = 'var(--accent)'; });
+$('imgDrop').addEventListener('dragleave', () => { $('imgDrop').style.borderColor = ''; });
+$('imgDrop').addEventListener('drop', e => {
+  e.preventDefault(); e.stopPropagation();
+  $('imgDrop').style.borderColor = '';
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) handleImgFile(f);
+  else toast('请拖入图片文件', 'err');
+});
+$('imgFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) handleImgFile(f);
+  e.target.value = '';
+});
+function handleImgFile(f){
+  const rd = new FileReader();
+  rd.onload = () => {
+    const dataUrl = rd.result;
+    $('imgOut').value = dataUrl;
+    const img = new Image();
+    img.onload = () => {
+      $('imgPreviewImg').src = dataUrl;
+      $('imgMeta').textContent = '尺寸：' + img.naturalWidth + ' × ' + img.naturalHeight + ' px · 大小：' + (f.size / 1024).toFixed(1) + ' KB · 类型：' + f.type;
+      $('imgPreview').hidden = false;
+      imgState.dataUrl = dataUrl;
+      toast('已生成 Base64（' + fmtInt(dataUrl.length) + ' 字符）');
+    };
+    img.src = dataUrl;
+  };
+  rd.readAsDataURL(f);
+}
+$('btnImgCopy').addEventListener('click', () => { if (imgState.dataUrl) copyText(imgState.dataUrl, 'Base64'); });
+$('btnImgDownload').addEventListener('click', () => { if (imgState.dataUrl) downloadText('base64.txt', imgState.dataUrl, 'text/plain'); });
+$('btnImgClear').addEventListener('click', () => {
+  $('imgOut').value = ''; $('imgPreview').hidden = true; imgState.dataUrl = '';
+});
+
+/* ================= 导航 / 路由 ================= */
+function toggleMenu(force){
+  const sb = $('sidebar'), ov = $('overlay');
+  const open = force !== undefined ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', open);
+  ov.classList.toggle('show', open);
+}
+function closeMenu(){ $('sidebar').classList.remove('open'); $('overlay').classList.remove('show'); }
+function switchTool(toolId, opts, item){
+  $$('.tool').forEach(s => s.classList.remove('active'));
+  const sec = $(toolId);
+  if (sec) sec.classList.add('active');
+  if (item){
+    $$('.sitem').forEach(a => a.classList.toggle('on', a === item));
+  } else {
+    $$('.sitem').forEach(a => a.classList.toggle('on', a.dataset.tool === toolId && !a.dataset.act && !a.dataset.mode && !a.dataset.hash));
+  }
+  closeMenu();
+  window.scrollTo({ top: 0 });
+  if (toolId === 't-json-format'){
+    const act = opts || 'format';
+    fmt.autoAct = act;
+    if ($('jsonIn').value.trim()) runFmtAction(act);
+  }
+  if (opts){
+    if (toolId === 't-xml'){
+      setSegGroup($('xmlMode'), opts);
+      if ($('xmlIn').value.trim()) runSilent(() => $('btnXmlRun').click());
+    }
+    if (toolId === 't-yaml'){
+      setSegGroup($('yamlMode'), opts);
+      if ($('yamlIn').value.trim()) runSilent(() => $('btnYamlRun').click());
+    }
+    if (toolId === 't-csv'){
+      setSegGroup($('csvMode'), opts);
+      if ($('csvIn').value.trim()) runSilent(() => $('btnCsvRun').click());
+    }
+    if (toolId === 't-hash'){
+      setSegGroup($('hashSel'), opts);
+      if ($('hashIn').value.trim()) runSilent(() => RUN.hash());
+    }
+  }
+}
+$$('.sitem').forEach(a => a.addEventListener('click', () => switchTool(a.dataset.tool, a.dataset.act || a.dataset.mode || a.dataset.hash, a)));
+
+/* ================= 输入即执行（防抖） ================= */
+const autoTimers = new Map();
+function runSilent(fn){
+  autoSilent = true;
+  try { fn(); } finally { autoSilent = false; }
+}
+function scheduleAuto(key, fn, wait){
+  clearTimeout(autoTimers.get(key));
+  autoTimers.set(key, setTimeout(() => runSilent(fn), wait == null ? 300 : wait));
+}
+function autoOn(ids, key, fn, wait){
+  (Array.isArray(ids) ? ids : [ids]).forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('input', () => scheduleAuto(key, fn, wait));
+  });
+}
+function autoChange(id, key, fn, wait){
+  const el = $(id);
+  if (el) el.addEventListener('change', () => scheduleAuto(key, fn, wait == null ? 0 : wait));
+}
+function autoSeg(id, key, fn, wait){
+  const el = $(id);
+  if (el) el.addEventListener('click', e => {
+    if (e.target.closest('button')) scheduleAuto(key, fn, wait == null ? 0 : wait);
+  });
+}
+function clearValues(ids){
+  ids.forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') el.value = '';
+    else el.innerHTML = '';
+  });
+}
+function clearStatus(ids){
+  ids.forEach(id => {
+    const el = $(id);
+    if (el){ el.textContent = ''; el.className = 'status'; }
+  });
+}
+
+/* JSON 格式化主工具：空白时清空，粘贴后自动格式化 */
+function autoFormat(){ if ($('jsonIn').value.trim()) runFmtAction(fmt.autoAct || 'format'); }
+autoOn('jsonIn', 'json-fmt', () => {
+  if (!$('jsonIn').value.trim()){
+    clearValues(['jsonOut', 'treeOut', 'tableOut', 'pathResult']);
+    clearStatus(['jsonStatus']);
+    $('jsonMeta').textContent = ''; $('pathCount').textContent = '';
+    $('errBox').hidden = true;
+    fmt.val = null; fmt.has = false; fmt.outText = '';
+    setSegGroup($('outTabs'), 'text'); fmt.view = 'text'; renderFmtOutput();
+    return;
+  }
+  autoFormat();
+}, 320);
+autoSeg('indentSeg', 'json-fmt', autoFormat);
+autoSeg('sortSeg', 'json-fmt', autoFormat);
+autoOn('pathExpr', 'json-path', () => {
+  if (!$('pathExpr').value.trim()){ clearValues(['pathResult']); $('pathCount').textContent = ''; return; }
+  if (!$('jsonIn').value.trim() || !parseJsonEx($('jsonIn').value).ok) return;
+  runPathQuery($('pathExpr').value, $('pathResult'), $('pathCount'));
+}, 320);
+
+/* JSON 对比 */
+autoOn(['diffA', 'diffB'], 'diff', () => {
+  const a = $('diffA').value, b = $('diffB').value;
+  if (!a.trim() || !b.trim()){
+    clearValues(['diffOut']); $('diffOut').hidden = true; $('diffSum').textContent = '';
+    return;
+  }
+  if (!parseJsonEx(a).ok || !parseJsonEx(b).ok) return;
+  $('btnDiffRun').click();
+}, 450);
+
+/* XML / YAML / CSV */
+function autoXml(){
+  if (!$('xmlIn').value.trim()){ $('xmlOut').value = ''; clearStatus(['xmlStatus']); return; }
+  $('btnXmlRun').click();
+}
+autoOn('xmlIn', 'xml', autoXml, 320);
+autoOn('xmlRoot', 'xml', autoXml, 320);
+autoSeg('xmlMode', 'xml', autoXml);
+
+function autoYaml(){
+  if (!$('yamlIn').value.trim()){ $('yamlOut').value = ''; clearStatus(['yamlStatus']); return; }
+  $('btnYamlRun').click();
+}
+autoOn('yamlIn', 'yaml', autoYaml, 320);
+autoSeg('yamlMode', 'yaml', autoYaml);
+
+function autoCsv(){
+  if (!$('csvIn').value.trim()){ $('csvOut').value = ''; clearStatus(['csvStatus']); return; }
+  $('btnCsvRun').click();
+}
+autoOn('csvIn', 'csv', autoCsv, 320);
+autoSeg('csvMode', 'csv', autoCsv);
+autoSeg('csvDelim', 'csv', autoCsv);
+
+/* JSON 转 Table / 语言 / SQL */
+autoOn('tblIn', 'tbl', () => {
+  if (!$('tblIn').value.trim()){ clearValues(['tblOut']); $('tblOut').hidden = true; clearStatus(['tblStatus']); return; }
+  if (!parseJsonEx($('tblIn').value).ok) return;
+  $('btnTblRun').click();
+}, 320);
+
+function autoLang(){
+  if (!$('langIn').value.trim()){ $('langOut').value = ''; clearStatus(['langStatus']); return; }
+  if (!parseJsonEx($('langIn').value).ok) return;
+  $('btnLangRun').click();
+}
+autoOn('langIn', 'lang', autoLang, 320);
+autoChange('langSel', 'lang', autoLang, 0);
+
+function autoSql(){
+  if (!$('sqlIn').value.trim()){ $('sqlOut').value = ''; clearStatus(['sqlStatus']); return; }
+  if (!parseJsonEx($('sqlIn').value).ok) return;
+  $('btnSqlRun').click();
+}
+autoOn('sqlIn', 'sql', autoSql, 320);
+autoOn('sqlTable', 'sql', autoSql, 320);
+
+/* 独立 JSONPath */
+autoOn(['pathIn', 'pathExpr2'], 'path2', () => {
+  const src = $('pathIn').value, expr = $('pathExpr2').value;
+  if (!src.trim() || !expr.trim()){ clearValues(['pathResult2']); $('pathCount2').textContent = ''; return; }
+  if (!parseJsonEx(src).ok) return;
+  $('btnPathRun2').click();
+}, 320);
+
+/* 树形 / 统计 / 排序 */
+autoOn('treeIn', 'tree', () => {
+  if (!$('treeIn').value.trim()){ clearValues(['treeOut2']); $('treeOut2').hidden = true; clearStatus(['treeStatus']); return; }
+  if (!parseJsonEx($('treeIn').value).ok) return;
+  $('btnTreeRun').click();
+}, 320);
+
+autoOn('statsIn', 'stats', () => {
+  if (!$('statsIn').value.trim()){ clearValues(['statsOut']); $('statsBar').hidden = true; return; }
+  if (!parseJsonEx($('statsIn').value).ok) return;
+  $('btnStatsRun').click();
+}, 400);
+
+function autoSort(){
+  if (!$('sortIn').value.trim()){ $('sortOut').value = ''; clearStatus(['sortStatus']); return; }
+  if (!parseJsonEx($('sortIn').value).ok) return;
+  $('btnSortRun').click();
+}
+autoOn('sortIn', 'sort', autoSort, 320);
+autoSeg('sortMode', 'sort', autoSort);
+
+/* 编码 / 文本转换 */
+function autoUrl(){ if (!$('urlIn').value){ $('urlOut').value = ''; return; } RUN.url(); }
+autoOn('urlIn', 'url', autoUrl, 250);
+autoSeg('urlMode', 'url', autoUrl);
+
+function autoB64(){ if (!$('b64In').value){ $('b64Out').value = ''; return; } RUN.b64(); }
+autoOn('b64In', 'b64', autoB64, 250);
+autoSeg('b64Mode', 'b64', autoB64);
+
+function autoUni(){ if (!$('uniIn').value){ $('uniOut').value = ''; return; } RUN.unicode(); }
+autoOn('uniIn', 'uni', autoUni, 250);
+autoSeg('uniMode', 'uni', autoUni);
+
+function autoEnt(){ if (!$('entIn').value){ $('entOut').value = ''; return; } RUN.htmlent(); }
+autoOn('entIn', 'ent', autoEnt, 250);
+autoSeg('entMode', 'ent', autoEnt);
+
+function autoCase(){ if (!$('caseIn').value){ $('caseOut').value = ''; return; } RUN.case(); }
+autoOn('caseIn', 'case', autoCase, 250);
+autoSeg('caseMode', 'case', autoCase);
+
+function autoRev(){ if (!$('revIn').value){ $('revOut').value = ''; return; } RUN.reverse(); }
+autoOn('revIn', 'rev', autoRev, 250);
+autoSeg('revMode', 'rev', autoRev);
+
+function autoTrim(){ if (!$('trimIn').value){ $('trimOut').value = ''; return; } RUN.trim(); }
+autoOn('trimIn', 'trim', autoTrim, 250);
+autoSeg('trimMode', 'trim', autoTrim);
+
+/* 哈希 */
+autoOn('hashIn', 'hash', () => {
+  if (!$('hashIn').value){ $('hashOut').hidden = true; clearValues(['hashOut']); clearStatus(['hashStatus']); window.__hashResults = ''; return; }
+  RUN.hash();
+}, 500);
+
+/* 时间戳 / 进制 / 正则 */
+autoOn('tsIn', 'ts', () => {
+  const raw = $('tsIn').value.trim();
+  if (!raw){ $('tsOut').hidden = true; clearValues(['tsOut']); clearStatus(['tsStatus']); return; }
+  if (!/^-?\d+$/.test(raw)) return;
+  $('btnTsRun').click();
+}, 320);
+
+function autoDt(){
+  if (!$('dtIn').value){ $('dtOut').hidden = true; clearValues(['dtOut']); clearStatus(['dtStatus']); return; }
+  $('btnDtRun').click();
+}
+autoOn('dtIn', 'dt', autoDt, 200);
+autoChange('dtIn', 'dt', autoDt, 0);
+
+function autoRadix(){
+  if (!$('radixIn').value.trim()){ clearValues(['radixOut']); $('radixOut').hidden = true; clearStatus(['radixStatus']); return; }
+  RUN.radix();
+}
+autoOn('radixIn', 'radix', autoRadix, 300);
+autoChange('radixFrom', 'radix', autoRadix, 0);
+
+function autoRegex(){
+  if (!$('regexPat').value){ $('regexOut').hidden = true; clearValues(['regexOut']); clearStatus(['regexStatus']); return; }
+  RUN.regex();
+}
+autoOn(['regexPat', 'regexText'], 'regex', autoRegex, 300);
+autoSeg('regexFlag', 'regex', autoRegex);
+
+/* ================= 初始化 ================= */
+function init(){
+  updateCount(); updateLen();
+  const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $('dtIn').value = nowLocal;
+  bindTreeToggle($('treeOut'));
+  bindTreeToggle($('treeOut2'));
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter'){
+      e.preventDefault();
+      const sec = document.querySelector('.tool.active');
+      if (!sec) return;
+      if (sec.id === 't-json-format'){ runFmtAction('format'); return; }
+      const btn = sec.querySelector('.btn.primary');
+      if (btn) btn.click();
+    }
+  });
+}
+init();
+
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
